@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy import ForeignKey, String,  select, insert, create_engine, update
+from sqlalchemy import ForeignKey, String, select, insert, create_engine, update
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
 
 CIRCLE_DEVELOP = 1
@@ -82,6 +82,20 @@ class Contact(Base):
     human: Mapped['Human'] = relationship(back_populates='contacts')
 
 
+class Community(Base):
+    __tablename__ = 'community'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+
+
+class Task(Base):
+    __tablename__ = 'task'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(100), nullable=False)
+
+
 class DBAdapter:
     def __init__(self, dbpath):
         db_path_with_protocol = f'sqlite:///{dbpath}'
@@ -121,63 +135,14 @@ class DBAdapter:
     def __exit__(self, type, value, traceback):
          self.session.__exit__(type, value, traceback)
 
-    def add_human(self, **kwargs):
-        human = Human(**kwargs)
-        self.session.add(human) #self.session.execute(insert(Human).returning(Human.id), [kwargs])
-        self.session.commit()
-        return human
-
-    def update_human(self, human, **kwargs):
-        #self.session.execute(update(Human).where(Human.id == human_id), [kwargs])
-        for field, value in kwargs.items():
-            setattr(human, field, value)
-
-        self.session.commit()
-
-    def get_human(self, human_id):
-        for human in self.session.scalars(select(Human).where(Human.id == human_id)):
-            return human
-
     def get_humans(self):
         return self.session.scalars(select(Human))
 
     def get_contact_types(self):
         return self.session.scalars(select(ContactType))
 
-    def get_contact_type(self, contact_type_id):
-        for contact_type in self.session.scalars(select(ContactType).where(ContactType.id == contact_type_id)):
-            return contact_type
-
-    def add_contact_type(self, **kwargs):
-        contact_type = ContactType(**kwargs)
-        self.session.add(contact_type)
-        self.session.commit()
-        return contact_type
-
-    def update_contact_type(self, contact_type, **kwargs):
-        for field, value in kwargs.items():
-            setattr(contact_type, field, value)
-
-        self.session.commit()
-
     def get_sectors(self):
         return self.session.scalars(select(Sector))
-
-    def add_sector(self, **kwargs):
-        sector = Sector(**kwargs)
-        self.session.add(sector)
-        self.session.commit()
-        return sector
-
-    def update_sector(self, sector, **kwargs):
-        for field, value in kwargs.items():
-            setattr(sector, field, value)
-
-        self.session.commit()
-
-    def get_sector(self, sector_id):
-        for sector in self.session.scalars(select(Sector).where(Sector.id == sector_id)):
-            return sector
 
     def add_contact(self, human_id, **kwargs):
         contact = Contact(human_id=human_id, **kwargs)
@@ -185,15 +150,12 @@ class DBAdapter:
         self.session.commit()
         return contact
 
-    def update_contact(self, contact, **kwargs):
-        for field, value in kwargs.items():
-            setattr(contact, field, value)
-
-        self.session.commit()
-
     def get_contacts(self):
         return self.session.scalars(select(Contact))
 
-    def get_contact(self, contact_id):
-        for contact in self.session.scalars(select(Contact).where(Contact.id == contact_id)):
-            return contact
+    def get_communities(self):
+        return self.session.scalars(select(Community))
+
+    def get_tasks(self):
+        return self.session.scalars(select(Task))
+

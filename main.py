@@ -3,7 +3,9 @@ from datetime import date
 from pathlib import Path
 
 import gi
+import db
 from db import CIRCLES, SEXES, CONTACT_STATUSES, DBAdapter
+from sqlalchemy import select
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import GLib, Gio, Gtk, GObject
@@ -29,6 +31,15 @@ def populate_grid(grid, widget_map, start_top_index=0):
 
 class EntityEditWindow(Gtk.ApplicationWindow):
     entity_name = None
+    entity_class = None
+
+    def __init__(self, *args, entity_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.entity = None
+        if entity_id:
+            query = select(self.entity_class).where(self.entity_class.id == entity_id)
+            self.entity = dbapi.session.scalars(query).first()
 
     @GObject.Signal
     def entity_added(self):
@@ -49,9 +60,13 @@ class EntityEditWindow(Gtk.ApplicationWindow):
     def change_any_data(self, name, value):
         fields = {name: value}
         if self.entity:
-            getattr(dbapi, f'update_{self.entity_name}')(self.entity, **fields)
+            setattr(self.entity, name, value)
+            dbapi.session.commit()
         else:
-            self.entity = getattr(dbapi, f'add_{self.entity_name}')(**fields)
+            #self.entity = getattr(dbapi, f'add_{self.entity_name}')(**fields)
+            self.entity = self.entity_class(**fields)
+            dbapi.session.add(task)
+            dbapi.session.commit()
             self.id_value.set_text(str(self.entity.id))
             self.emit('entity_added')
 
@@ -122,13 +137,10 @@ class EntityColumnView:
 class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
     #__gtype_name__ = "example1"
     entity_name = 'human'
+    entity_class = db.Human
 
-    def __init__(self, *args, entity_id=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        self.entity = None
-        if entity_id:
-            self.entity = dbapi.get_human(entity_id)
         
         main_box = Gtk.Box(spacing=6)
         main_box.props.orientation = Gtk.Orientation.VERTICAL
@@ -308,16 +320,13 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
 class ContactTypeWindow(EntityEditWindow, Gtk.ApplicationWindow):
     entity_name = 'contact_type'
+    entity_class = db.ContactType
 
-    def __init__(self, *args, entity_id=None, **kwargs):
+    def __init__(self, *args,  **kwargs):
         super().__init__(*args, **kwargs)
 
         grid = Gtk.Grid()
         self.set_child(grid)
-
-        self.entity = None
-        if entity_id:
-            self.entity = dbapi.get_contact_type(entity_id)
 
         id_label = Gtk.Label(label='Идентификатор')
         self.id_value = Gtk.Label(label=self.entity.id if self.entity else '')
@@ -335,16 +344,37 @@ class ContactTypeWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
 class SectorWindow(EntityEditWindow, Gtk.ApplicationWindow):
     entity_name = 'sector'
+    entity_class = db.Sector
 
-    def __init__(self, *args, entity_id=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         grid = Gtk.Grid()
         self.set_child(grid)
 
-        self.entity = None
-        if entity_id:
-            self.entity = dbapi.get_sector(entity_id)
+        id_label = Gtk.Label(label='Идентификатор')
+        self.id_value = Gtk.Label(label=self.entity.id if self.entity else '')
+
+        name_label = Gtk.Label(label='Название')
+        name_entry = Gtk.Entry(text=self.entity.name if self.entity else '')
+        name_entry.connect('changed', self.on_change_any_data, 'name')
+
+        grid_map = (
+            (id_label, self.id_value, None),
+            (name_label, name_entry, None),
+        )
+        populate_grid(grid, grid_map)
+
+
+class CommunityWindow(EntityEditWindow, Gtk.ApplicationWindow):
+    entity_name = 'community'
+    entity_class = db.Community
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        grid = Gtk.Grid()
+        self.set_child(grid)
 
         id_label = Gtk.Label(label='Идентификатор')
         self.id_value = Gtk.Label(label=self.entity.id if self.entity else '')
@@ -450,14 +480,12 @@ class SectorListWindow(Gtk.ApplicationWindow):
 
 class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
     entity_name = 'contact'
+    entity_class = db.Contact
 
-    def __init__(self, *args, human_id, entity_id=None, **kwargs):
+    def __init__(self, *args, human_id, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.human_id = human_id
-        self.entity = None
-        if entity_id:
-            self.entity = dbapi.get_contact(entity_id)
 
         grid = Gtk.Grid()
         self.set_child(grid)
@@ -499,7 +527,8 @@ class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
     def change_any_data(self, name, value):
         fields = {name: value}
         if self.entity:
-            dbapi.update_contact(self.entity, **fields)
+            setattr(self.entity, name, value)
+            dbapi.session.commit()
         else:
             self.entity = dbapi.add_contact(self.human_id, **fields)
             self.id_value.set_text(str(self.entity.id))
@@ -525,7 +554,7 @@ class Human(GObject.Object):
 
 class Contact(GObject.Object):
     __gtype_name__  = 'Contact'
-    
+
     def __init__(self, contact_id, contact_type, contact_value, contact_status):
         super().__init__()
         self._contact_id = contact_id
@@ -584,6 +613,40 @@ class Sector(GObject.Object):
         return self._sector_name
 
 
+class Community(GObject.Object):
+    __gtype_name__  = 'Community'
+
+    def __init__(self, community_id, community_name):
+        super().__init__()
+        self._community_id = community_id
+        self._community_name = community_name
+
+    @GObject.Property(type=int)
+    def community_id(self):
+        return self._community_id
+
+    @GObject.Property(type=str)
+    def community_name(self):
+        return self._community_name
+
+
+class Task(GObject.Object):
+    __gtype_name__  = 'Task'
+
+    def __init__(self, task_id, task_title):
+        super().__init__()
+        self._task_id = task_id
+        self._task_title = task_title
+
+    @GObject.Property(type=int)
+    def task_id(self):
+        return self._task_id
+
+    @GObject.Property(type=str)
+    def task_title(self):
+        return self._task_title
+
+
 class AppWindow(Gtk.ApplicationWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -596,9 +659,17 @@ class AppWindow(Gtk.ApplicationWindow):
         action_add_human.connect('activate', self.on_show_adding_human)
         self.add_action(action_add_human)
 
+        action_add_community = Gio.SimpleAction.new('add_community', None)
+        action_add_community.connect('activate', self.on_show_adding_community)
+        self.add_action(action_add_community)
+
         action_show_humans = Gio.SimpleAction.new('show_humans', None)
         action_show_humans.connect('activate', self.on_show_humans)
         self.add_action(action_show_humans)
+
+        action_show_communities = Gio.SimpleAction.new('show_communities', None)
+        action_show_communities.connect('activate', self.on_show_communities)
+        self.add_action(action_show_communities)
         
         self.main_box = None
         self.on_show_humans(None, None)
@@ -623,8 +694,17 @@ class AppWindow(Gtk.ApplicationWindow):
         self.main_box.props.orientation = Gtk.Orientation.VERTICAL
         self.set_child(self.main_box)
 
-    def on_show_organizations(self, action, value):
-        pass
+    def on_show_communities(self, action, value):
+        self.clear_and_init_empty_view()
+        self.communities_column_view = EntityColumnView(
+            Community,
+           (('ID', 'community_id'), ('Название', 'community_name')),
+            self.on_activate_community,
+            self.on_show_adding_community,
+        )
+        self.update_community_list()
+        self.main_box.append(self.communities_column_view.buttons_box)
+        self.main_box.append(self.communities_column_view.view)
 
     def on_show_tasks(self, action, value):
         pass
@@ -638,8 +718,8 @@ class AppWindow(Gtk.ApplicationWindow):
     def on_show_adding_human(self, action, value=None):
         self.open_human_window()
 
-    def on_show_adding_organization(self, action, value):
-        pass
+    def on_show_adding_community(self, action, value=None):
+        self.open_community_window()
 
     def on_show_settings(self, action, value):
         pass
@@ -648,17 +728,40 @@ class AppWindow(Gtk.ApplicationWindow):
         self.humans_column_view.clear()
         self.update_human_list()
 
+    def on_community_added(self, widget):
+        self.communities_column_view.clear()
+        self.update_community_list()
+
     def update_human_list(self):
         for human in dbapi.get_humans():
-            self.humans_column_view.append(human_id=human.id, human_name=human.first_name)
+            self.humans_column_view.append(
+                human_id=human.id,
+                human_name=human.first_name,
+            )
+
+    def update_community_list(self):
+        for community in dbapi.get_communities():
+            self.communities_column_view.append(
+                community_id=community.id,
+                community_name=community.name,
+            )
 
     def on_activate_human(self, column_view, position):
         item = self.humans_column_view.list_store.get_item(position)
         self.open_human_window(item.human_id)
-    
+
+    def on_activate_community(self, column_view, position):
+        item = self.communities_column_view.list_store.get_item(position)
+        self.open_community_window(item.community_id)
+
     def open_human_window(self, human_id=None):
         window = HumanWindow(transient_for=self, title='Human', modal=True, entity_id=human_id)
         window.connect('entity_added', self.on_human_added)
+        window.present()
+
+    def open_community_window(self, community_id=None):
+        window = CommunityWindow(transient_for=self, title='Community', modal=True, entity_id=community_id)
+        window.connect('entity_added', self.on_community_added)
         window.present()
 
 

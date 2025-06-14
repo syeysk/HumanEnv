@@ -9,8 +9,8 @@
                 <attribute name="label" translatable="yes">Humans</attribute>
             </item>
             <item>
-                <attribute name="action">win.maximize</attribute>
-                <attribute name="label" translatable="yes">Organizations</attribute>
+                <attribute name="action">win.show_communities</attribute>
+                <attribute name="label" translatable="yes">Communities</attribute>
             </item>
             <item>
                 <attribute name="action">win.maximize</attribute>
@@ -37,8 +37,8 @@
                 <attribute name="label" translatable="yes">Human</attribute>
             </item>
             <item>
-                <attribute name="action">win.maximize</attribute>
-                <attribute name="label" translatable="yes">Organization</attribute>
+                <attribute name="action">win.add_community</attribute>
+                <attribute name="label" translatable="yes">Community</attribute>
             </item>
         </section>
     </submenu>
