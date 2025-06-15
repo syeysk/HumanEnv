@@ -29,6 +29,28 @@ CONTACT_STATUSES = {
     CONTACT_STATUS_DELETED: 'Удалён аккаунт',
 }
 
+BOOK_CONTACT_TYPE_UNKNOWN = 1
+BOOK_CONTACT_TYPE_CONNECTOR = 2
+BOOK_CONTACT_TYPE_CAPACITOR = 3
+BOOK_CONTACT_TYPE_BRIDGE = 4
+BOOK_CONTACT_TYPES = {
+    BOOK_CONTACT_TYPE_UNKNOWN: 'Не указано',
+    BOOK_CONTACT_TYPE_CONNECTOR: 'Коннектор',
+    BOOK_CONTACT_TYPE_CAPACITOR: 'Конденсатор',
+    BOOK_CONTACT_TYPE_BRIDGE: 'Мост',
+}
+
+BOOK_DID_UNKNOWN = 1
+BOOK_DID_DANGEROUS = 2
+BOOK_DID_INTERESTING = 3
+BOOK_DID_DIFFICULT = 4
+BOOK_DID = {
+    BOOK_DID_UNKNOWN: 'Не указано',
+    BOOK_DID_DANGEROUS: 'Опасен',
+    BOOK_DID_INTERESTING: 'Интересен',
+    BOOK_DID_DIFFICULT: 'Сложен',
+}
+
 
 class Base(DeclarativeBase):
     pass
@@ -56,6 +78,8 @@ class Human(Base):
     circle: Mapped[int] = mapped_column(nullable=False, default=CIRCLE_DEVELOP)
     sex: Mapped[int] = mapped_column(nullable=False, default=SEX_UNKNOWN)
     closing: Mapped[int] = mapped_column(nullable=False, default=0)
+    book_contact_type: Mapped[int] = mapped_column(nullable=False, default=BOOK_CONTACT_TYPE_UNKNOWN)
+    book_did: Mapped[int] = mapped_column(nullable=False, default=BOOK_DID_UNKNOWN)
 
     sector_id: Mapped[int] = mapped_column(ForeignKey('sector.id'), nullable=False, default=1)
     sector: Mapped['Sector'] = relationship(back_populates='humans')
@@ -94,6 +118,38 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
+
+
+class LinkContactHuman(Base):
+    __tablename__ = 'link_contact_human'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    contact_id: Mapped[int] = mapped_column(ForeignKey('contact.id'), nullable=False)
+    human_id: Mapped[int] = mapped_column(ForeignKey('human.id'), nullable=False)
+
+
+class LinkContactCommunity(Base):
+    __tablename__ = 'link_contact_community'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    contact_id: Mapped[int] = mapped_column(ForeignKey('contact.id'), nullable=False)
+    community_id: Mapped[int] = mapped_column(ForeignKey('community.id'), nullable=False)
+
+
+class LinkTaskHuman(Base):
+    __tablename__ = 'link_task_human'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_id: Mapped[int] = mapped_column(ForeignKey('task.id'), nullable=False)
+    human_id: Mapped[int] = mapped_column(ForeignKey('human.id'), nullable=False)
+
+
+class LinkTaskCommunity(Base):
+    __tablename__ = 'link_task_community'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_id: Mapped[int] = mapped_column(ForeignKey('task.id'), nullable=False)
+    community_id: Mapped[int] = mapped_column(ForeignKey('community.id'), nullable=False)
 
 
 class DBAdapter:

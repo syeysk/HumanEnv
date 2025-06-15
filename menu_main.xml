@@ -13,8 +13,12 @@
                 <attribute name="label" translatable="yes">Communities</attribute>
             </item>
             <item>
-                <attribute name="action">win.maximize</attribute>
+                <attribute name="action">win.show_tasks</attribute>
                 <attribute name="label" translatable="yes">Tasks</attribute>
+            </item>
+           <item>
+                <attribute name="action">win.show_contacts</attribute>
+                <attribute name="label" translatable="yes">Contacts</attribute>
             </item>
         </section>
         <section>
@@ -39,6 +43,14 @@
             <item>
                 <attribute name="action">win.add_community</attribute>
                 <attribute name="label" translatable="yes">Community</attribute>
+            </item>
+            <item>
+                <attribute name="action">win.add_task</attribute>
+                <attribute name="label" translatable="yes">Task</attribute>
+            </item>
+            <item>
+                <attribute name="action">win.add_contact</attribute>
+                <attribute name="label" translatable="yes">Contact</attribute>
             </item>
         </section>
     </submenu>

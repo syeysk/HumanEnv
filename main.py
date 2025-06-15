@@ -4,7 +4,14 @@ from pathlib import Path
 
 import gi
 import db
-from db import CIRCLES, SEXES, CONTACT_STATUSES, DBAdapter
+from db import (
+    BOOK_CONTACT_TYPES,
+    BOOK_DID,
+    CIRCLES,
+    SEXES,
+    CONTACT_STATUSES,
+    DBAdapter,
+)
 from sqlalchemy import select
 
 gi.require_version("Gtk", "4.0")
@@ -107,8 +114,12 @@ class EntityColumnView:
         if on_add_clicked:
             add_button.connect('clicked', on_add_clicked)
 
+
+        select_button = Gtk.Button(label='Выбрать')
+
         self.buttons_box.append(delete_button)
         self.buttons_box.append(add_button)
+        self.buttons_box.append(select_button)
 
         # Item's list
     
@@ -260,7 +271,23 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
         top_right_box.attach(sector_label, 0, len(top_right_map) + 1, 1, 1)
         top_right_box.attach(sector_entry, 1, len(top_right_map) + 1, 1, 1)
         top_right_box.attach(sector_edit_button, 2, len(top_right_map) + 1, 1, 1)
- 
+
+        book_contact_type_label = Gtk.Label(label='Тип контакта')
+        book_contact_type_entry = Gtk.DropDown()
+        book_contact_type_entry.props.model = Gtk.StringList(strings=tuple(BOOK_CONTACT_TYPEvalues()))
+        book_contact_type_entry.props.selected = (self.entity.book_contact_type - 1) if self.entity else 0
+        book_contact_type_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'book_contact_type')
+        top_right_box.attach(book_contact_type_label, 0, len(top_right_map) + 2, 1, 1)
+        top_right_box.attach(book_contact_type_entry, 1, len(top_right_map) + 2, 2, 1)
+
+        book_did_label = Gtk.Label(label='Анализ ОИС')
+        book_did_entry = Gtk.DropDown()
+        book_did_entry.props.model = Gtk.StringList(strings=tuple(BOOK_DID.values()))
+        book_did_entry.props.selected = (self.entity.book_did - 1) if self.entity else 0
+        book_did_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'book_did')
+        top_right_box.attach(book_did_label, 0, len(top_right_map) + 3, 1, 1)
+        top_right_box.attach(book_did_entry, 1, len(top_right_map) + 3, 2, 1)
+
         # Bottom Controllers
 
         contact_columns = (('ID', 'contact_id'), ('Тип', 'contact_type'), ('Значение', 'contact_value'), ('Статус', 'contact_status'))
@@ -386,6 +413,30 @@ class CommunityWindow(EntityEditWindow, Gtk.ApplicationWindow):
         grid_map = (
             (id_label, self.id_value, None),
             (name_label, name_entry, None),
+        )
+        populate_grid(grid, grid_map)
+
+
+class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
+    entity_name = 'task'
+    entity_class = db.Task
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        grid = Gtk.Grid()
+        self.set_child(grid)
+
+        id_label = Gtk.Label(label='Идентификатор')
+        self.id_value = Gtk.Label(label=self.entity.id if self.entity else '')
+
+        title_label = Gtk.Label(label='Название')
+        title_entry = Gtk.Entry(text=self.entity.title if self.entity else '')
+        title_entry.connect('changed', self.on_change_any_data, 'title')
+
+        grid_map = (
+            (id_label, self.id_value, None),
+            (title_label, title_entry, None),
         )
         populate_grid(grid, grid_map)
 
@@ -663,6 +714,14 @@ class AppWindow(Gtk.ApplicationWindow):
         action_add_community.connect('activate', self.on_show_adding_community)
         self.add_action(action_add_community)
 
+        action_add_task = Gio.SimpleAction.new('add_task', None)
+        action_add_task.connect('activate', self.on_show_adding_task)
+        self.add_action(action_add_task)
+
+        action_add_contact = Gio.SimpleAction.new('add_contact', None)
+        action_add_contact.connect('activate', self.on_show_adding_contact)
+        self.add_action(action_add_contact)
+
         action_show_humans = Gio.SimpleAction.new('show_humans', None)
         action_show_humans.connect('activate', self.on_show_humans)
         self.add_action(action_show_humans)
@@ -670,7 +729,15 @@ class AppWindow(Gtk.ApplicationWindow):
         action_show_communities = Gio.SimpleAction.new('show_communities', None)
         action_show_communities.connect('activate', self.on_show_communities)
         self.add_action(action_show_communities)
-        
+
+        action_show_tasks = Gio.SimpleAction.new('show_tasks', None)
+        action_show_tasks.connect('activate', self.on_show_tasks)
+        self.add_action(action_show_tasks)
+
+        action_show_contacts = Gio.SimpleAction.new('show_contacts', None)
+        action_show_communities.connect('activate', self.on_show_contacts)
+        self.add_action(action_show_contacts)
+
         self.main_box = None
         self.on_show_humans(None, None)
 
@@ -707,7 +774,28 @@ class AppWindow(Gtk.ApplicationWindow):
         self.main_box.append(self.communities_column_view.view)
 
     def on_show_tasks(self, action, value):
-        pass
+        self.clear_and_init_empty_view()
+        self.tasks_column_view = EntityColumnView(
+            Task,
+           (('ID', 'task_id'), ('Название', 'task_title')),
+            self.on_activate_task,
+            self.on_show_adding_task,
+        )
+        self.update_task_list()
+        self.main_box.append(self.tasks_column_view.buttons_box)
+        self.main_box.append(self.tasks_column_view.view)
+
+    def on_show_contacts(self, action, value):
+        self.clear_and_init_empty_view()
+        self.contacts_column_view = EntityColumnView(
+            Contact,
+           (('ID', 'contact_id'), ('Значение', 'contact_value')),
+            self.on_activate_contact,
+            self.on_show_adding_contact,
+        )
+        self.update_contact_list()
+        self.main_box.append(self.contacts_column_view.buttons_box)
+        self.main_box.append(self.contacts_column_view.view)
 
     def on_show_map(self, action, value):
         pass
@@ -721,6 +809,12 @@ class AppWindow(Gtk.ApplicationWindow):
     def on_show_adding_community(self, action, value=None):
         self.open_community_window()
 
+    def on_show_adding_task(self, action, value=None):
+        self.open_task_window()
+
+    def on_show_adding_contact(self, action, value=None):
+        self.open_contact_window()
+
     def on_show_settings(self, action, value):
         pass
     
@@ -731,6 +825,14 @@ class AppWindow(Gtk.ApplicationWindow):
     def on_community_added(self, widget):
         self.communities_column_view.clear()
         self.update_community_list()
+
+    def on_task_added(self, widget):
+        self.tasks_column_view.clear()
+        self.update_task_list()
+
+    def on_contact_added(self, widget):
+        self.contacts_column_view.clear()
+        self.update_contact_list()
 
     def update_human_list(self):
         for human in dbapi.get_humans():
@@ -746,6 +848,20 @@ class AppWindow(Gtk.ApplicationWindow):
                 community_name=community.name,
             )
 
+    def update_task_list(self):
+        for task in dbapi.get_tasks():
+            self.tasks_column_view.append(
+                task_id=task.id,
+                task_title=task.title,
+            )
+
+    def update_contact_list(self):
+        for contact in dbapi.get_contacts():
+            self.contacts_column_view.append(
+                contact_id=contact.id,
+                contact_value=contact.value,
+            )
+
     def on_activate_human(self, column_view, position):
         item = self.humans_column_view.list_store.get_item(position)
         self.open_human_window(item.human_id)
@@ -753,6 +869,14 @@ class AppWindow(Gtk.ApplicationWindow):
     def on_activate_community(self, column_view, position):
         item = self.communities_column_view.list_store.get_item(position)
         self.open_community_window(item.community_id)
+
+    def on_activate_task(self, column_view, position):
+        item = self.tasks_column_view.list_store.get_item(position)
+        self.open_task_window(item.task_id)
+
+    def on_activate_contact(self, column_view, position):
+        item = self.contacts_column_view.list_store.get_item(position)
+        self.open_contact_window(item.contact_id)
 
     def open_human_window(self, human_id=None):
         window = HumanWindow(transient_for=self, title='Human', modal=True, entity_id=human_id)
@@ -762,6 +886,16 @@ class AppWindow(Gtk.ApplicationWindow):
     def open_community_window(self, community_id=None):
         window = CommunityWindow(transient_for=self, title='Community', modal=True, entity_id=community_id)
         window.connect('entity_added', self.on_community_added)
+        window.present()
+
+    def open_task_window(self, task_id=None):
+        window = TaskWindow(transient_for=self, title='Task', modal=True, entity_id=task_id)
+        window.connect('entity_added', self.on_task_added)
+        window.present()
+
+    def open_contact_window(self, contact_id=None):
+        window = ContactWindow(transient_for=self, title='Contact', modal=True, entity_id=contact_id)
+        window.connect('entity_added', self.on_contact_added)
         window.present()
 
 
