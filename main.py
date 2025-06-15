@@ -40,8 +40,11 @@ class EntityEditWindow(Gtk.ApplicationWindow):
     entity_name = None
     entity_class = None
 
-    def __init__(self, *args, entity_id=None, **kwargs):
+    def __init__(self, *args, entity_id=None, human_id=None, community_id=None, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        self.human_id = human_id
+        self.community_id = community_id
 
         self.entity = None
         if entity_id:
@@ -70,11 +73,16 @@ class EntityEditWindow(Gtk.ApplicationWindow):
             setattr(self.entity, name, value)
             dbapi.session.commit()
         else:
-            #self.entity = getattr(dbapi, f'add_{self.entity_name}')(**fields)
             self.entity = self.entity_class(**fields)
-            dbapi.session.add(task)
+            dbapi.session.add(self.entity)
             dbapi.session.commit()
             self.id_value.set_text(str(self.entity.id))
+            
+            if self.human_id:
+                link = db.LinkContactHuman(human_id=self.human_id, contact_id=self.entity.id)
+                dbapi.session.add(link)
+                dbapi.session.commit()
+            
             self.emit('entity_added')
 
 
@@ -274,7 +282,7 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
         book_contact_type_label = Gtk.Label(label='Тип контакта')
         book_contact_type_entry = Gtk.DropDown()
-        book_contact_type_entry.props.model = Gtk.StringList(strings=tuple(BOOK_CONTACT_TYPEvalues()))
+        book_contact_type_entry.props.model = Gtk.StringList(strings=tuple(BOOK_CONTACT_TYPES.values()))
         book_contact_type_entry.props.selected = (self.entity.book_contact_type - 1) if self.entity else 0
         book_contact_type_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'book_contact_type')
         top_right_box.attach(book_contact_type_label, 0, len(top_right_map) + 2, 1, 1)
@@ -307,7 +315,8 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
         bottom_box.append(links_label)
     
     def update_contact_list(self):
-        for contact in self.entity.contacts:
+        for link_contact in dbapi.session.scalars(select(db.LinkContactHuman).where(db.LinkContactHuman.human_id==self.entity.id)):
+            contact = link_contact.contact
             self.contacts_column_view.append(
                 contact_id=contact.id,
                 contact_type=contact.type.name,
@@ -533,10 +542,8 @@ class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
     entity_name = 'contact'
     entity_class = db.Contact
 
-    def __init__(self, *args, human_id, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        self.human_id = human_id
 
         grid = Gtk.Grid()
         self.set_child(grid)
@@ -573,17 +580,7 @@ class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
     
     def on_type_edit_clicked(self, button):
         window = ContactTypeListWindow(transient_for=self, title='Contact Type List', modal=True)
-        window.present()        
-
-    def change_any_data(self, name, value):
-        fields = {name: value}
-        if self.entity:
-            setattr(self.entity, name, value)
-            dbapi.session.commit()
-        else:
-            self.entity = dbapi.add_contact(self.human_id, **fields)
-            self.id_value.set_text(str(self.entity.id))
-            self.emit('contact_added')
+        window.present()
 
 
 class Human(GObject.Object):
@@ -735,7 +732,7 @@ class AppWindow(Gtk.ApplicationWindow):
         self.add_action(action_show_tasks)
 
         action_show_contacts = Gio.SimpleAction.new('show_contacts', None)
-        action_show_communities.connect('activate', self.on_show_contacts)
+        action_show_contacts.connect('activate', self.on_show_contacts)
         self.add_action(action_show_contacts)
 
         self.main_box = None
@@ -859,7 +856,9 @@ class AppWindow(Gtk.ApplicationWindow):
         for contact in dbapi.get_contacts():
             self.contacts_column_view.append(
                 contact_id=contact.id,
+                contact_type=contact.type.name,
                 contact_value=contact.value,
+                contact_status=CONTACT_STATUSES[contact.status],
             )
 
     def on_activate_human(self, column_view, position):

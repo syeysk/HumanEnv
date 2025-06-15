@@ -84,8 +84,6 @@ class Human(Base):
     sector_id: Mapped[int] = mapped_column(ForeignKey('sector.id'), nullable=False, default=1)
     sector: Mapped['Sector'] = relationship(back_populates='humans')
 
-    contacts: Mapped[List['Contact']] = relationship(back_populates='human', cascade='all, delete-orphan')
-
 
 class ContactType(Base):
     __tablename__ = 'contact_type'
@@ -102,8 +100,6 @@ class Contact(Base):
     type_id: Mapped[int] = mapped_column(ForeignKey('contact_type.id'), nullable=False, default=1)
     type: Mapped['ContactType'] = relationship()
     status: Mapped[int] = mapped_column(nullable=False, default=CONTACT_STATUS_ACTIVE)
-    human_id: Mapped[int] = mapped_column(ForeignKey('human.id'))
-    human: Mapped['Human'] = relationship(back_populates='contacts')
 
 
 class Community(Base):
@@ -126,6 +122,7 @@ class LinkContactHuman(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     contact_id: Mapped[int] = mapped_column(ForeignKey('contact.id'), nullable=False)
     human_id: Mapped[int] = mapped_column(ForeignKey('human.id'), nullable=False)
+    contact: Mapped['Contact'] = relationship()
 
 
 class LinkContactCommunity(Base):
