@@ -51,8 +51,12 @@ class EntityEditWindow(Gtk.ApplicationWindow):
             query = select(self.entity_class).where(self.entity_class.id == entity_id)
             self.entity = dbapi.session.scalars(query).first()
 
-    @GObject.Signal
-    def entity_added(self):
+    @GObject.Signal(arg_types=(int,))
+    def entity_added(self, entity_id: int):
+        pass
+
+    @GObject.Signal(arg_types=(int, str, str))
+    def entity_updated(self, entity_id: int, name: str, value: str):
         pass
 
     def on_change_any_data(self, field_entry, field_name):
@@ -72,18 +76,13 @@ class EntityEditWindow(Gtk.ApplicationWindow):
         if self.entity:
             setattr(self.entity, name, value)
             dbapi.session.commit()
+            self.emit('entity_added', self.entity.id, name, value)
         else:
             self.entity = self.entity_class(**fields)
             dbapi.session.add(self.entity)
             dbapi.session.commit()
-            self.id_value.set_text(str(self.entity.id))
-            
-            if self.human_id:
-                link = db.LinkContactHuman(human_id=self.human_id, contact_id=self.entity.id)
-                dbapi.session.add(link)
-                dbapi.session.commit()
-            
-            self.emit('entity_added')
+            self.id_value.set_text(str(self.entity.id))            
+            self.emit('entity_added', self.entity.id)
 
 
 # Inspired by: https://www.reddit.com/r/GTK/comments/1889i8s/gtk4_python_how_to_set_columnview_header_labels/?tl=ru
@@ -333,12 +332,14 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
         age_timedelta = date.today() - birth_date
         self.age_value.set_text(f'{age_timedelta.days // 365} лет')
     
-    def on_contact_added(self, widget):
+    def on_contact_added(self, widget, contact_id):
+        dbapi.session.add(db.LinkContactHuman(human_id=self.entity.id, contact_id=contact_id))
+        dbapi.session.commit()
         self.contacts_column_view.clear()
         self.update_contact_list()
     
     def open_contact_window(self, contact_id=None):
-        window = ContactWindow(transient_for=self, title='Contact', modal=True, human_id=self.entity.id, entity_id=contact_id)
+        window = ContactWindow(transient_for=self, title='Contact', modal=True, entity_id=contact_id)
         window.connect('entity_added', self.on_contact_added)
         window.present()
 
@@ -470,7 +471,7 @@ class ContactTypeListWindow(Gtk.ApplicationWindow):
         
         self.update_contact_type_list()
 
-    def on_contact_type_added(self, widget):
+    def on_contact_type_added(self, widget, _):
         self.contact_types_column_view.clear()
         self.update_contact_type_list()
     
@@ -514,7 +515,7 @@ class SectorListWindow(Gtk.ApplicationWindow):
         
         self.update_sector_list()
 
-    def on_sector_added(self, widget):
+    def on_sector_added(self, widget, _):
         self.sectors_column_view.clear()
         self.update_sector_list()
     
@@ -815,19 +816,19 @@ class AppWindow(Gtk.ApplicationWindow):
     def on_show_settings(self, action, value):
         pass
     
-    def on_human_added(self, widget):
+    def on_human_added(self, widget, _):
         self.humans_column_view.clear()
         self.update_human_list()
 
-    def on_community_added(self, widget):
+    def on_community_added(self, widget, _):
         self.communities_column_view.clear()
         self.update_community_list()
 
-    def on_task_added(self, widget):
+    def on_task_added(self, widget, _):
         self.tasks_column_view.clear()
         self.update_task_list()
 
-    def on_contact_added(self, widget):
+    def on_contact_added(self, widget, _):
         self.contacts_column_view.clear()
         self.update_contact_list()
 

@@ -197,12 +197,6 @@ class DBAdapter:
     def get_sectors(self):
         return self.session.scalars(select(Sector))
 
-    def add_contact(self, human_id, **kwargs):
-        contact = Contact(human_id=human_id, **kwargs)
-        self.session.add(contact)
-        self.session.commit()
-        return contact
-
     def get_contacts(self):
         return self.session.scalars(select(Contact))
 
