@@ -76,7 +76,7 @@ class EntityEditWindow(Gtk.ApplicationWindow):
         if self.entity:
             setattr(self.entity, name, value)
             dbapi.session.commit()
-            self.emit('entity_added', self.entity.id, name, value)
+            self.emit('entity_updated', self.entity.id, name, value)
         else:
             self.entity = self.entity_class(**fields)
             dbapi.session.add(self.entity)
@@ -107,8 +107,11 @@ class EntityColumnView:
         cell = list_item.get_child()
         cell._binding = None
 
-    def __init__(self, item_type, field_names, on_activate, on_add_clicked=None, on_delete_clicked=None):
+    def __init__(self, parent_window, item_type, on_item_created=None, on_delete_clicked=None):
         # Buttons
+
+        self.parent_window = parent_window
+        self.on_item_created = on_item_created
 
         self.buttons_box = Gtk.Box(spacing=6)
         self.buttons_box.props.orientation = Gtk.Orientation.HORIZONTAL
@@ -118,9 +121,7 @@ class EntityColumnView:
             delete_button.connect('clicked', on_delete_clicked)
 
         add_button = Gtk.Button(label='Добавить')
-        if on_add_clicked:
-            add_button.connect('clicked', on_add_clicked)
-
+        add_button.connect('clicked', self.on_add_item_clicked)
 
         select_button = Gtk.Button(label='Выбрать')
 
@@ -134,8 +135,8 @@ class EntityColumnView:
         self.list_store = Gio.ListStore(item_type=item_type)
         selection = Gtk.SingleSelection(model=self.list_store)
         self.view = Gtk.ColumnView(model=selection)
-        self.view.connect('activate', on_activate)
-        for field_title, field_name in field_names:
+        self.view.connect('activate', self.on_activate_item)
+        for field_title, field_name in item_type.columns:
             factory = Gtk.SignalListItemFactory()
             factory.connect('setup', self._on_factory_setup)
             factory.connect('bind', self._on_factory_bind, field_name)
@@ -149,6 +150,23 @@ class EntityColumnView:
 
     def clear(self):
         self.list_store.remove_all()
+
+    def open_item_window(self, entity_id=None):
+        window = self.item_type_class.window(
+            transient_for=self.parent_window,
+            title=self.item_type_class.__gtype_name__,
+            modal=True,
+            entity_id=entity_id,
+        )
+        window.connect('entity_added', self.on_item_created)
+        window.present()
+
+    def on_activate_item(self, column_view, position):
+        item = self.list_store.get_item(position)
+        self.open_item_window(item.entity_id)
+
+    def on_add_item_clicked(self, _):
+        self.open_item_window()
 
 
 #@Gtk.Template(string=widget_main_xml)
@@ -297,12 +315,10 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
         # Bottom Controllers
 
-        contact_columns = (('ID', 'contact_id'), ('Тип', 'contact_type'), ('Значение', 'contact_value'), ('Статус', 'contact_status'))
         self.contacts_column_view = EntityColumnView(
+            self,
             Contact,
-            contact_columns,
-            self.on_activate_contact,
-            self.on_add_contact_clicked,
+            self.on_contact_added,
         )
         bottom_box.append(self.contacts_column_view.buttons_box)
         bottom_box.append(self.contacts_column_view.view)
@@ -317,7 +333,7 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
         for link_contact in dbapi.session.scalars(select(db.LinkContactHuman).where(db.LinkContactHuman.human_id==self.entity.id)):
             contact = link_contact.contact
             self.contacts_column_view.append(
-                contact_id=contact.id,
+                entity_id=contact.id,
                 contact_type=contact.type.name,
                 contact_value=contact.value,
                 contact_status=CONTACT_STATUSES[contact.status],
@@ -337,18 +353,6 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
         dbapi.session.commit()
         self.contacts_column_view.clear()
         self.update_contact_list()
-    
-    def open_contact_window(self, contact_id=None):
-        window = ContactWindow(transient_for=self, title='Contact', modal=True, entity_id=contact_id)
-        window.connect('entity_added', self.on_contact_added)
-        window.present()
-
-    def on_activate_contact(self, column_view, position):
-        item = self.contacts_column_view.list_store.get_item(position)
-        self.open_contact_window(item.contact_id)
-    
-    def on_add_contact_clicked(self, _):
-        self.open_contact_window()
 
     def on_sector_edit_clicked(self, button):
         window = SectorListWindow(transient_for=self, title='Sector List', modal=True)
@@ -458,13 +462,11 @@ class ContactTypeListWindow(Gtk.ApplicationWindow):
         box = Gtk.Box()
         box.props.orientation = Gtk.Orientation.VERTICAL
         self.set_child(box)
-        
-        contact_type_columns = (('ID', 'contact_type_id'), ('Название', 'contact_type_name'))
+
         self.contact_types_column_view = EntityColumnView(
+            self,
             ContactType,
-            contact_type_columns,
-            self.on_activate_contact_type,
-            self.on_add_contact_type_clicked,
+            self.on_contact_type_added,
         )
         box.append(self.contact_types_column_view.buttons_box)
         box.append(self.contact_types_column_view.view)
@@ -474,23 +476,11 @@ class ContactTypeListWindow(Gtk.ApplicationWindow):
     def on_contact_type_added(self, widget, _):
         self.contact_types_column_view.clear()
         self.update_contact_type_list()
-    
-    def open_contact_type_window(self, contact_type_id=None):
-        window = ContactTypeWindow(transient_for=self, title='Contact Type', modal=True, entity_id=contact_type_id)
-        window.connect('entity_added', self.on_contact_type_added)
-        window.present()
-
-    def on_activate_contact_type(self, column_view, position):
-        item = self.contact_types_column_view.list_store.get_item(position)
-        self.open_contact_type_window(item.contact_type_id)
-    
-    def on_add_contact_type_clicked(self, _):
-        self.open_contact_type_window()
 
     def update_contact_type_list(self):
         for contact_type in dbapi.get_contact_types():
             self.contact_types_column_view.append(
-                contact_type_id=contact_type.id,
+                entity_id=contact_type.id,
                 contact_type_name=contact_type.name,
             )
 
@@ -502,13 +492,11 @@ class SectorListWindow(Gtk.ApplicationWindow):
         box = Gtk.Box()
         box.props.orientation = Gtk.Orientation.VERTICAL
         self.set_child(box)
-        
-        sector_columns = (('ID', 'sector_id'), ('Название', 'sector_name'))
+
         self.sectors_column_view = EntityColumnView(
+            self,
             Sector,
-            sector_columns,
-            self.on_activate_sector,
-            self.on_add_sector_clicked,
+            self.on_sector_added,
         )
         box.append(self.sectors_column_view.buttons_box)
         box.append(self.sectors_column_view.view)
@@ -518,23 +506,11 @@ class SectorListWindow(Gtk.ApplicationWindow):
     def on_sector_added(self, widget, _):
         self.sectors_column_view.clear()
         self.update_sector_list()
-    
-    def open_sector_window(self, sector_id=None):
-        window = SectorWindow(transient_for=self, title='Sector', modal=True, entity_id=sector_id)
-        window.connect('entity_added', self.on_sector_added)
-        window.present()
-
-    def on_activate_sector(self, column_view, position):
-        item = self.sectors_column_view.list_store.get_item(position)
-        self.open_sector_window(item.sector_id)
-    
-    def on_add_sector_clicked(self, _):
-        self.open_sector_window()
 
     def update_sector_list(self):
         for sector in dbapi.get_sectors():
             self.sectors_column_view.append(
-                sector_id=sector.id,
+                entity_id=sector.id,
                 sector_name=sector.name,
             )
 
@@ -578,23 +554,48 @@ class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
             (status_label, status_entry, None),
         )
         populate_grid(grid, top_right_map)
+        
+        self.humans_column_view = EntityColumnView(
+            self,
+            Human,
+            self.on_human_added,
+        )
+        self.update_human_list()
+        grid.attach(self.humans_column_view.buttons_box, 0, len(top_right_map), 3, 1)
+        grid.attach(self.humans_column_view.view, 0, len(top_right_map) + 1, 3, 5)
     
     def on_type_edit_clicked(self, button):
         window = ContactTypeListWindow(transient_for=self, title='Contact Type List', modal=True)
         window.present()
 
+    def on_human_added(self, widget, human_id):
+        dbapi.session.add(db.LinkContactHuman(human_id=human_id, contact_id=self.entity.id))
+        dbapi.session.commit()
+        self.humans_column_view.clear()
+        self.update_human_list()
+
+    def update_human_list(self):
+        for link_contact in dbapi.session.scalars(select(db.LinkContactHuman).where(db.LinkContactHuman.contact_id==self.entity.id)):
+            human = link_contact.human
+            self.humans_column_view.append(
+                entity_id=human.id,
+                human_name=human.first_name,
+            )
+
 
 class Human(GObject.Object):
     __gtype_name__  = 'Human'
+    columns = (('ID', 'entity_id'), ('ФИО', 'human_name'))
+    window = HumanWindow
     
-    def __init__(self, human_id, human_name):
+    def __init__(self, entity_id, human_name):
         super().__init__()
-        self._human_id = human_id
+        self._entity_id = entity_id
         self._human_name = human_name
 
     @GObject.Property(type=int)
-    def human_id(self):
-        return self._human_id
+    def entity_id(self):
+        return self._entity_id
 
     @GObject.Property(type=str)
     def human_name(self):
@@ -603,17 +604,19 @@ class Human(GObject.Object):
 
 class Contact(GObject.Object):
     __gtype_name__  = 'Contact'
+    columns = (('ID', 'entity_id'), ('Тип', 'contact_type'), ('Значение', 'contact_value'), ('Статус', 'contact_status'))
+    window = ContactWindow
 
-    def __init__(self, contact_id, contact_type, contact_value, contact_status):
+    def __init__(self, entity_id, contact_type, contact_value, contact_status):
         super().__init__()
-        self._contact_id = contact_id
+        self._entity_id = entity_id
         self._contact_type = contact_type
         self._contact_value = contact_value
         self._contact_status = contact_status
 
     @GObject.Property(type=int)
-    def contact_id(self):
-        return self._contact_id
+    def entity_id(self):
+        return self._entity_id
 
     @GObject.Property(type=str)
     def contact_type(self):
@@ -630,15 +633,17 @@ class Contact(GObject.Object):
 
 class ContactType(GObject.Object):
     __gtype_name__  = 'ContactType'
+    columns = (('ID', 'entity_id'), ('Название', 'contact_type_name'))
+    window = ContactTypeWindow
     
-    def __init__(self, contact_type_id, contact_type_name):
+    def __init__(self, entity_id, contact_type_name):
         super().__init__()
-        self._contact_type_id = contact_type_id
+        self._entity_id = entity_id
         self._contact_type_name = contact_type_name
 
     @GObject.Property(type=int)
-    def contact_type_id(self):
-        return self._contact_type_id
+    def entity_id(self):
+        return self._entity_id
 
     @GObject.Property(type=str)
     def contact_type_name(self):
@@ -647,15 +652,17 @@ class ContactType(GObject.Object):
 
 class Sector(GObject.Object):
     __gtype_name__  = 'Sector'
+    columns = (('ID', 'entity_id'), ('Название', 'sector_name'))
+    window = SectorWindow
 
-    def __init__(self, sector_id, sector_name):
+    def __init__(self, entity_id, sector_name):
         super().__init__()
-        self._sector_id = sector_id
+        self._entity_id = entity_id
         self._sector_name = sector_name
 
     @GObject.Property(type=int)
-    def sector_id(self):
-        return self._sector_id
+    def entity_id(self):
+        return self._entity_id
 
     @GObject.Property(type=str)
     def sector_name(self):
@@ -664,15 +671,17 @@ class Sector(GObject.Object):
 
 class Community(GObject.Object):
     __gtype_name__  = 'Community'
+    columns =  (('ID', 'entity_id'), ('Название', 'community_name'))
+    window = CommunityWindow
 
-    def __init__(self, community_id, community_name):
+    def __init__(self, entity_id, community_name):
         super().__init__()
-        self._community_id = community_id
+        self._entity_id = entity_id
         self._community_name = community_name
 
     @GObject.Property(type=int)
-    def community_id(self):
-        return self._community_id
+    def entity_id(self):
+        return self._entity_id
 
     @GObject.Property(type=str)
     def community_name(self):
@@ -681,15 +690,17 @@ class Community(GObject.Object):
 
 class Task(GObject.Object):
     __gtype_name__  = 'Task'
+    columns =  (('ID', 'entity_id'), ('Название', 'task_title'))
+    window = TaskWindow
 
-    def __init__(self, task_id, task_title):
+    def __init__(self, entity_id, task_title):
         super().__init__()
-        self._task_id = task_id
+        self._entity_id = entity_id
         self._task_title = task_title
 
     @GObject.Property(type=int)
-    def task_id(self):
-        return self._task_id
+    def entity_id(self):
+        return self._entity_id
 
     @GObject.Property(type=str)
     def task_title(self):
@@ -703,7 +714,7 @@ class AppWindow(Gtk.ApplicationWindow):
         self.set_default_size(400, 400)
         
         self.props.show_menubar = True
-        
+
         action_add_human = Gio.SimpleAction.new('add_human', None)
         action_add_human.connect('activate', self.on_show_adding_human)
         self.add_action(action_add_human)
@@ -742,10 +753,9 @@ class AppWindow(Gtk.ApplicationWindow):
     def on_show_humans(self, action, value):
         self.clear_and_init_empty_view()
         self.humans_column_view = EntityColumnView(
+            self,
             Human,
-           (('ID', 'human_id'), ('ФИО', 'human_name')),
-            self.on_activate_human,
-            self.on_show_adding_human,
+            self.on_human_added,
         )
         self.update_human_list()
         self.main_box.append(self.humans_column_view.buttons_box)
@@ -762,10 +772,9 @@ class AppWindow(Gtk.ApplicationWindow):
     def on_show_communities(self, action, value):
         self.clear_and_init_empty_view()
         self.communities_column_view = EntityColumnView(
+            self,
             Community,
-           (('ID', 'community_id'), ('Название', 'community_name')),
-            self.on_activate_community,
-            self.on_show_adding_community,
+            self.on_community_added,
         )
         self.update_community_list()
         self.main_box.append(self.communities_column_view.buttons_box)
@@ -774,10 +783,9 @@ class AppWindow(Gtk.ApplicationWindow):
     def on_show_tasks(self, action, value):
         self.clear_and_init_empty_view()
         self.tasks_column_view = EntityColumnView(
+            self,
             Task,
-           (('ID', 'task_id'), ('Название', 'task_title')),
-            self.on_activate_task,
-            self.on_show_adding_task,
+            self.on_task_added,
         )
         self.update_task_list()
         self.main_box.append(self.tasks_column_view.buttons_box)
@@ -786,10 +794,9 @@ class AppWindow(Gtk.ApplicationWindow):
     def on_show_contacts(self, action, value):
         self.clear_and_init_empty_view()
         self.contacts_column_view = EntityColumnView(
+            self,
             Contact,
-           (('ID', 'contact_id'), ('Значение', 'contact_value')),
-            self.on_activate_contact,
-            self.on_show_adding_contact,
+            self.on_contact_added,
         )
         self.update_contact_list()
         self.main_box.append(self.contacts_column_view.buttons_box)
@@ -808,10 +815,10 @@ class AppWindow(Gtk.ApplicationWindow):
         self.open_community_window()
 
     def on_show_adding_task(self, action, value=None):
-        self.open_task_window()
+        self.tasks_column_view.open_item_window()
 
     def on_show_adding_contact(self, action, value=None):
-        self.open_contact_window()
+        self.contacts_column_view.open_item_window()
 
     def on_show_settings(self, action, value):
         pass
@@ -835,68 +842,32 @@ class AppWindow(Gtk.ApplicationWindow):
     def update_human_list(self):
         for human in dbapi.get_humans():
             self.humans_column_view.append(
-                human_id=human.id,
+                entity_id=human.id,
                 human_name=human.first_name,
             )
 
     def update_community_list(self):
         for community in dbapi.get_communities():
             self.communities_column_view.append(
-                community_id=community.id,
+                entity_id=community.id,
                 community_name=community.name,
             )
 
     def update_task_list(self):
         for task in dbapi.get_tasks():
             self.tasks_column_view.append(
-                task_id=task.id,
+                entity_id=task.id,
                 task_title=task.title,
             )
 
     def update_contact_list(self):
         for contact in dbapi.get_contacts():
             self.contacts_column_view.append(
-                contact_id=contact.id,
+                entity_id=contact.id,
                 contact_type=contact.type.name,
                 contact_value=contact.value,
                 contact_status=CONTACT_STATUSES[contact.status],
             )
-
-    def on_activate_human(self, column_view, position):
-        item = self.humans_column_view.list_store.get_item(position)
-        self.open_human_window(item.human_id)
-
-    def on_activate_community(self, column_view, position):
-        item = self.communities_column_view.list_store.get_item(position)
-        self.open_community_window(item.community_id)
-
-    def on_activate_task(self, column_view, position):
-        item = self.tasks_column_view.list_store.get_item(position)
-        self.open_task_window(item.task_id)
-
-    def on_activate_contact(self, column_view, position):
-        item = self.contacts_column_view.list_store.get_item(position)
-        self.open_contact_window(item.contact_id)
-
-    def open_human_window(self, human_id=None):
-        window = HumanWindow(transient_for=self, title='Human', modal=True, entity_id=human_id)
-        window.connect('entity_added', self.on_human_added)
-        window.present()
-
-    def open_community_window(self, community_id=None):
-        window = CommunityWindow(transient_for=self, title='Community', modal=True, entity_id=community_id)
-        window.connect('entity_added', self.on_community_added)
-        window.present()
-
-    def open_task_window(self, task_id=None):
-        window = TaskWindow(transient_for=self, title='Task', modal=True, entity_id=task_id)
-        window.connect('entity_added', self.on_task_added)
-        window.present()
-
-    def open_contact_window(self, contact_id=None):
-        window = ContactWindow(transient_for=self, title='Contact', modal=True, entity_id=contact_id)
-        window.connect('entity_added', self.on_contact_added)
-        window.present()
 
 
 class MyApplication(Gtk.Application):

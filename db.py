@@ -123,6 +123,7 @@ class LinkContactHuman(Base):
     contact_id: Mapped[int] = mapped_column(ForeignKey('contact.id'), nullable=False)
     human_id: Mapped[int] = mapped_column(ForeignKey('human.id'), nullable=False)
     contact: Mapped['Contact'] = relationship()
+    human: Mapped['Human'] = relationship()
 
 
 class LinkContactCommunity(Base):
