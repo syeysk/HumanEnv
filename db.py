@@ -1,6 +1,8 @@
+import datetime
 from typing import List, Optional
-from sqlalchemy import ForeignKey, String, select, insert, create_engine, update
+from sqlalchemy import ForeignKey, String, select, insert, create_engine, update, DateTime
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
+from sqlalchemy.sql import func
 
 CIRCLE_DEVELOP = 1
 CIRCLE_EFFECTIVITY = 2
@@ -116,6 +118,15 @@ class Task(Base):
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     aim_id: Mapped[int] = mapped_column(ForeignKey('task_aim.id'), nullable=False, default=1)
     aim: Mapped['TaskAim'] = relationship()
+
+
+class Meeting(Base):
+    __tablename__ = 'meeting'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[str] = mapped_column(String(10000), nullable=False, default='')
+    date: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class TaskAim(Base):

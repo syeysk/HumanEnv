@@ -1,0 +1,19 @@
+<?xml version="1.1" encoding="UTF-8" ?>
+<Grid id="grid">
+    <Row>
+        <Label id="id_label">Идентификатор</Label>
+        <Label id="id_value">{{ entity.id }}</Label>
+	</Row>
+    <Row>
+        <Label id="title_label">Название</Label>
+        <Entry id="title_entry" colspan="2">{{ entity.title }}</Entry>
+	</Row>
+    <Row>
+        <Label id="aim_label">Цель задачи в отношениях</Label>
+        <DropDown id="aim_entry" selected="{{ entity.aim_id }}"></DropDown>
+        <Button id="aim_edit_button">Edit</Button>
+	</Row>
+	<Row>
+	    <EntityColumnView item_type="Human" on_item_added="on_human_added" id="humans_column_view" colspan="3"></EntityColumnView>    
+	</Row>
+</Grid>
