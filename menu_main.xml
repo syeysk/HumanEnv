@@ -5,24 +5,6 @@
         <attribute name="label" translatable="yes">Show</attribute>
         <section>
             <item>
-                <attribute name="action">win.show_humans</attribute>
-                <attribute name="label" translatable="yes">Humans</attribute>
-            </item>
-            <item>
-                <attribute name="action">win.show_communities</attribute>
-                <attribute name="label" translatable="yes">Communities</attribute>
-            </item>
-            <item>
-                <attribute name="action">win.show_tasks</attribute>
-                <attribute name="label" translatable="yes">Tasks</attribute>
-            </item>
-           <item>
-                <attribute name="action">win.show_contacts</attribute>
-                <attribute name="label" translatable="yes">Contacts</attribute>
-            </item>
-        </section>
-        <section>
-            <item>
                 <attribute name="action">app.about</attribute>
                 <attribute name="label" translatable="yes">Map</attribute>
             </item>
@@ -30,27 +12,6 @@
                 <attribute name="action">app.quit</attribute>
                 <attribute name="label" translatable="yes">Aims</attribute>
                 <attribute name="accel">&lt;Primary&gt;q</attribute>
-            </item>
-        </section>
-    </submenu>
-    <submenu>
-        <attribute name="label" translatable="yes">Add</attribute>
-        <section>
-            <item>
-                <attribute name="action">win.add_human</attribute>
-                <attribute name="label" translatable="yes">Human</attribute>
-            </item>
-            <item>
-                <attribute name="action">win.add_community</attribute>
-                <attribute name="label" translatable="yes">Community</attribute>
-            </item>
-            <item>
-                <attribute name="action">win.add_task</attribute>
-                <attribute name="label" translatable="yes">Task</attribute>
-            </item>
-            <item>
-                <attribute name="action">win.add_contact</attribute>
-                <attribute name="label" translatable="yes">Contact</attribute>
             </item>
         </section>
     </submenu>

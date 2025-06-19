@@ -114,6 +114,15 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
+    aim_id: Mapped[int] = mapped_column(ForeignKey('task_aim.id'), nullable=False, default=1)
+    aim: Mapped['TaskAim'] = relationship()
+
+
+class TaskAim(Base):
+    __tablename__ = 'task_aim'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
 
 
 class LinkContactHuman(Base):
@@ -132,6 +141,8 @@ class LinkContactCommunity(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     contact_id: Mapped[int] = mapped_column(ForeignKey('contact.id'), nullable=False)
     community_id: Mapped[int] = mapped_column(ForeignKey('community.id'), nullable=False)
+    contact: Mapped['Contact'] = relationship()
+    community: Mapped['Community'] = relationship()
 
 
 class LinkTaskHuman(Base):
@@ -140,6 +151,8 @@ class LinkTaskHuman(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     task_id: Mapped[int] = mapped_column(ForeignKey('task.id'), nullable=False)
     human_id: Mapped[int] = mapped_column(ForeignKey('human.id'), nullable=False)
+    task: Mapped['Task'] = relationship()
+    human: Mapped['Human'] = relationship()
 
 
 class LinkTaskCommunity(Base):
@@ -148,6 +161,18 @@ class LinkTaskCommunity(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     task_id: Mapped[int] = mapped_column(ForeignKey('task.id'), nullable=False)
     community_id: Mapped[int] = mapped_column(ForeignKey('community.id'), nullable=False)
+    task: Mapped['Task'] = relationship()
+    community: Mapped['Community'] = relationship()
+
+
+class LinkHumanCommunity(Base):
+    __tablename__ = 'link_human_community'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    human_id: Mapped[int] = mapped_column(ForeignKey('human.id'), nullable=False)
+    community_id: Mapped[int] = mapped_column(ForeignKey('community.id'), nullable=False)
+    human: Mapped['Human'] = relationship()
+    community: Mapped['Community'] = relationship()
 
 
 class DBAdapter:
@@ -158,8 +183,8 @@ class DBAdapter:
         Base.metadata.create_all(self.engine)
 
     def __enter__(self):
-        self.session_obj = Session(self.engine)
-        self.session = self.session_obj.__enter__()
+        session_obj = Session(self.engine)
+        self.session = session_obj.__enter__()
 
         '''
         contact_types = (
@@ -188,22 +213,4 @@ class DBAdapter:
 
     def __exit__(self, type, value, traceback):
          self.session.__exit__(type, value, traceback)
-
-    def get_humans(self):
-        return self.session.scalars(select(Human))
-
-    def get_contact_types(self):
-        return self.session.scalars(select(ContactType))
-
-    def get_sectors(self):
-        return self.session.scalars(select(Sector))
-
-    def get_contacts(self):
-        return self.session.scalars(select(Contact))
-
-    def get_communities(self):
-        return self.session.scalars(select(Community))
-
-    def get_tasks(self):
-        return self.session.scalars(select(Task))
 
