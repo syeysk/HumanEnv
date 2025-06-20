@@ -10,7 +10,7 @@
 	</Row>
     <Row>
         <Label id="aim_label">Цель задачи в отношениях</Label>
-        <DropDown id="aim_entry" selected="{{ entity.aim_id }}"></DropDown>
+        <UniDropDown id="aim_entry"></UniDropDown>
         <Button id="aim_edit_button">Edit</Button>
 	</Row>
 	<Row>

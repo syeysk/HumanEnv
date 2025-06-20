@@ -64,10 +64,9 @@ class EntityEditWindow(Gtk.ApplicationWindow):
             
         self.change_any_data(field_name, value)
 
-    def on_change_any_data_dropdown(self, field_entry, _pspec, field_name):
-        tupples = field_entry.props.model.tupples
-        #selected_item = field_entry.props.selected_item
-        self.change_any_data(field_name, tupples[field_entry.props.selected][0])
+    def on_change_any_data_dropdown(self, dropdown, _pspec, field_name):
+        item = dropdown.get_selected_item()
+        self.change_any_data(field_name, item.item_id)
 
     def change_any_data(self, name, value):
         fields = {name: value}
@@ -199,11 +198,52 @@ class EntityListWindow(Gtk.ApplicationWindow):
             self.column_view.append(entity)
 
 
-class DictList(Gtk.StringList):
-    def __init__(self, tupples, *args, **kwargs):
-        strings = [name_item for id_item, name_item in tupples]
-        super().__init__(strings=strings, *args, **kwargs)
-        self.tupples = tupples
+class ItemDropDown(GObject.Object):
+    __gtype_name__  = 'ItemDropDown'
+
+    def __init__(self, item_id, name):
+        super().__init__()
+        self._item_id = item_id
+        self._name = name
+
+    @GObject.Property(type=int)
+    def item_id(self):
+        return self._item_id
+
+    @GObject.Property(type=str)
+    def name(self):
+        return self._name
+
+
+class UniDropDown(Gtk.DropDown):
+    def __init__(self, tupples=None):
+        super().__init__()
+        factory = Gtk.SignalListItemFactory()
+        factory.connect('setup', self._on_setup)
+        factory.connect('bind', self._on_bind)
+        self.store = Gio.ListStore.new(ItemDropDown)
+        selection = Gtk.SingleSelection()
+        selection.set_model(self.store)
+        self.set_factory(factory)
+        self.set_model(selection)
+        
+        if tupples:
+            for item_id, item_name in tupples:
+                self.append(item_id, item_name)
+
+    def _on_setup(self, widget, item):
+        """Setup the widget to show in the Gtk.Listview"""
+        label = Gtk.Label()
+        item.set_child(label)
+
+    def _on_bind(self, widget, item):
+        """bind data from the store object to the widget"""
+        label = item.get_child()
+        obj = item.get_item()
+        label.set_text(obj.name)
+
+    def append(self, item_id, item_name):
+        self.store.append(ItemDropDown(item_id, item_name))
 
 
 #@Gtk.Template(string=widget_main_xml)
@@ -245,7 +285,7 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
         sex_label = Gtk.Label(label='Пол')
         sex_label.props.xalign = 0
         sex_entry = Gtk.DropDown()
-        sex_entry.props.model = DictList(tupples=tuple(SEXES.items()))
+        sex_entry.props.model = UniDropDown(tupples=tuple(SEXES.items()))
         sex_entry.props.selected = (self.entity.sex - 1) if self.entity else 0
         sex_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'sex')
 
@@ -328,7 +368,7 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
         circle_label.props.xalign = 0
         
         circle_entry = Gtk.DropDown()
-        circle_entry.props.model = DictList(tupples=tuple(CIRCLES.items()))
+        circle_entry.props.model = UniDropDown(tupples=tuple(CIRCLES.items()))
         circle_entry.props.selected = (self.entity.circle - 1) if self.entity else 0
         circle_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'circle')
         top_right_box.attach(circle_label, 0, len(top_right_map), 1, 1)
@@ -338,7 +378,7 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
         sector_label.props.xalign = 0
         sector_entry = Gtk.DropDown()
         sector_strings = tuple((sector.id, sector.name) for sector in dbapi.session.scalars(select(db.Sector)))
-        sector_entry.props.model = DictList(tupples=sector_strings)
+        sector_entry.props.model = UniDropDown(tupples=sector_strings)
         sector_entry.props.selected = (self.entity.sector_id - 1) if self.entity else 0
         sector_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'sector_id')
         sector_edit_button = Gtk.Button(label='Edit')
@@ -349,7 +389,7 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
         book_contact_type_label = Gtk.Label(label='Тип контакта')
         book_contact_type_entry = Gtk.DropDown()
-        book_contact_type_entry.props.model = DictList(tupples=tuple(BOOK_CONTACT_TYPES.items()))
+        book_contact_type_entry.props.model = UniDropDown(tupples=tuple(BOOK_CONTACT_TYPES.items()))
         book_contact_type_entry.props.selected = (self.entity.book_contact_type - 1) if self.entity else 0
         book_contact_type_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'book_contact_type')
         top_right_box.attach(book_contact_type_label, 0, len(top_right_map) + 2, 1, 1)
@@ -357,7 +397,7 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
         book_did_label = Gtk.Label(label='Анализ ОИС')
         book_did_entry = Gtk.DropDown()
-        book_did_entry.props.model = DictList(tupples=tuple(BOOK_DID.items()))
+        book_did_entry.props.model = UniDropDown(tupples=tuple(BOOK_DID.items()))
         book_did_entry.props.selected = (self.entity.book_did - 1) if self.entity else 0
         book_did_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'book_did')
         top_right_box.attach(book_did_label, 0, len(top_right_map) + 3, 1, 1)
@@ -424,6 +464,8 @@ class WindowBuilder:
         else:
             if tag == 'EntityColumnView':
                 gtkclass = EntityColumnView
+            elif tag == 'UniDropDown':
+                gtkclass = UniDropDown
             else:
                 gtkclass = getattr(Gtk, tag)
 
@@ -446,7 +488,7 @@ class WindowBuilder:
                     setattr(self, attr_value, gtkelem)
                 else:
                     if attr_name in {'selected'}:
-                        attr_value = int(attr_value)
+                        attr_value = int(attr_value) if attr_value else 0
 
                     setattr(gtkelem.props, attr_name, attr_value)
         
@@ -509,7 +551,8 @@ class CommunityWindow(EntityEditWindow, Gtk.ApplicationWindow):
         builder.name_entry.connect('changed', self.on_change_any_data, 'name')
 
         self.contacts_column_view = builder.contacts_column_view
-        self.update_contact_list()
+        if self.entity:
+            self.update_contact_list()
 
     def on_contact_added(self, widget, contact_id):
         dbapi.session.add(db.LinkContactCommunity(community_id=self.entity.id, contact_id=contact_id))
@@ -533,13 +576,16 @@ class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
         self.id_value = builder.id_value
         builder.title_entry.connect('changed', self.on_change_any_data, 'title')
 
-        aim_strings = tuple((task_aim.id, task_aim.name) for task_aim in dbapi.session.scalars(select(db.TaskAim)))
-        builder.aim_entry.props.model = DictList(tupples=aim_strings)
+        for task_aim in dbapi.session.scalars(select(db.TaskAim)):
+            builder.aim_entry.append(item_id=task_aim.id, item_name=task_aim.name)
+
+        builder.aim_entry.props.selected = self.entity.aim.id if self.entity else 0
         builder.aim_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'aim_id')
         builder.aim_edit_button.connect('clicked', self.on_aim_edit_clicked)
 
         self.humans_column_view = builder.humans_column_view
-        self.update_human_list()
+        if self.entity:
+            self.update_human_list()
 
     def on_human_added(self, widget, human_id):
         dbapi.session.add(db.LinkTaskHuman(task_id=self.entity.id, human_id=human_id))
@@ -568,6 +614,18 @@ class TaskAimWindow(EntityEditWindow, Gtk.ApplicationWindow):
         builder.name_entry.connect('changed', self.on_change_any_data, 'name')
 
 
+class MeetingWindow(EntityEditWindow, Gtk.ApplicationWindow):
+    entity_name = 'meeting'
+    entity_class = db.Meeting
+
+    def __init__(self, *args,  **kwargs):
+        super().__init__(*args, **kwargs)
+        builder = WindowBuilder(BASE_DIR / 'meeting.xml', {'entity': self.entity})
+        self.set_child(builder.grid)
+        self.id_value = builder.id_value
+        builder.name_entry.connect('changed', self.on_change_any_data, 'name')
+
+
 class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
     entity_name = 'contact'
     entity_class = db.Contact
@@ -589,7 +647,7 @@ class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
         type_label = Gtk.Label(label='Тип')
         type_entry = Gtk.DropDown()
         type_strings = tuple((contact_type.id, contact_type.name) for contact_type in dbapi.session.scalars(select(db.ContactType)))
-        type_entry.props.model = DictList(tupples=type_strings)
+        type_entry.props.model = UniDropDown(tupples=type_strings)
         type_entry.props.selected = (self.entity.type_id - 1) if self.entity else 0
         type_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'type_id')
         type_edit_button = Gtk.Button(label='Edit')
@@ -597,7 +655,7 @@ class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
         status_label = Gtk.Label(label='Статус')
         status_entry = Gtk.DropDown()
-        status_entry.props.model = DictList(tupples=tuple(CONTACT_STATUSES.items()))
+        status_entry.props.model = UniDropDown(tupples=tuple(CONTACT_STATUSES.items()))
         status_entry.props.selected = (self.entity.status - 1) if self.entity else 0
         status_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'status')
 
@@ -847,6 +905,32 @@ class TaskAim(GObject.Object):
         return self._task_aim_name
 
 
+class Meeting(GObject.Object):
+    __gtype_name__  = 'Meeting'
+    columns = (('ID', 'entity_id', FIELD_ID_SIZE), ('Название', 'meeting_name', None))
+    window = MeetingWindow
+
+    def __init__(self, entity_id, meeting_name):
+        super().__init__()
+        self._entity_id = entity_id
+        self._meeting_name = meeting_name
+
+    @classmethod
+    def from_db_object(cls, db_object):
+        return cls(
+            entity_id=db_object.id,
+            meeting_name=db_object.name,
+        )
+
+    @GObject.Property(type=int)
+    def entity_id(self):
+        return self._entity_id
+
+    @GObject.Property(type=int)
+    def meeting_name(self):
+        return self._meeting_name
+
+
 class TaskAimListWindow(EntityListWindow):
     entity_type_class = TaskAim
     entity_db_class = db.TaskAim
@@ -877,18 +961,27 @@ class AppWindow(Gtk.ApplicationWindow):
         self.box.props.orientation = Gtk.Orientation.HORIZONTAL
         left_box = Gtk.Box(spacing=6)
         left_box.props.orientation = Gtk.Orientation.VERTICAL
+
         button_show_human = Gtk.Button(label='Human')
         button_show_human.connect('clicked', self.on_show_entities, Human, db.Human)
         left_box.append(button_show_human)
+
         button_show_community = Gtk.Button(label='Community')
         button_show_community.connect('clicked', self.on_show_entities, Community, db.Community)
         left_box.append(button_show_community)
+
         button_show_task = Gtk.Button(label='Task')
         button_show_task.connect('clicked', self.on_show_entities, Task, db.Task)
         left_box.append(button_show_task)
+
         button_show_contact = Gtk.Button(label='Contact')
         button_show_contact.connect('clicked', self.on_show_entities, Contact, db.Contact)
         left_box.append(button_show_contact)
+
+        button_show_meeting = Gtk.Button(label='Meeting')
+        button_show_meeting.connect('clicked', self.on_show_entities, Meeting, db.Meeting)
+        left_box.append(button_show_meeting)
+
         self.box.append(left_box)
         self.set_child(self.box)
 
