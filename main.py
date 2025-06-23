@@ -620,10 +620,24 @@ class MeetingWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
     def __init__(self, *args,  **kwargs):
         super().__init__(*args, **kwargs)
-        builder = WindowBuilder(BASE_DIR / 'meeting.xml', {'entity': self.entity})
+        builder = WindowBuilder(BASE_DIR / 'meeting.xml', {'entity': self.entity}, parent_window=self)
         self.set_child(builder.grid)
         self.id_value = builder.id_value
-        builder.name_entry.connect('changed', self.on_change_any_data, 'name')
+        builder.title_entry.connect('changed', self.on_change_any_data, 'title')
+
+        self.humans_column_view = builder.humans_column_view
+        if self.entity:
+            self.update_human_list()
+
+    def on_human_added(self, widget, human_id):
+        dbapi.session.add(db.LinkHumanMeeting(meeting_id=self.entity.id, human_id=human_id))
+        dbapi.session.commit()
+        self.humans_column_view.clear()
+        self.update_human_list()
+
+    def update_human_list(self):
+        for link_human in dbapi.session.scalars(select(db.LinkHumanMeeting).where(db.LinkHumanMeeting.meeting_id==self.entity.id)):
+            self.humans_column_view.append(link_human.human)
 
 
 class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
@@ -910,16 +924,16 @@ class Meeting(GObject.Object):
     columns = (('ID', 'entity_id', FIELD_ID_SIZE), ('Название', 'meeting_name', None))
     window = MeetingWindow
 
-    def __init__(self, entity_id, meeting_name):
+    def __init__(self, entity_id, meeting_title):
         super().__init__()
         self._entity_id = entity_id
-        self._meeting_name = meeting_name
+        self._meeting_title = meeting_title
 
     @classmethod
     def from_db_object(cls, db_object):
         return cls(
             entity_id=db_object.id,
-            meeting_name=db_object.name,
+            meeting_title=db_object.title,
         )
 
     @GObject.Property(type=int)
@@ -927,8 +941,8 @@ class Meeting(GObject.Object):
         return self._entity_id
 
     @GObject.Property(type=int)
-    def meeting_name(self):
-        return self._meeting_name
+    def meeting_title(self):
+        return self._meeting_title
 
 
 class TaskAimListWindow(EntityListWindow):

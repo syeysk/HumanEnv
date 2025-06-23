@@ -186,6 +186,16 @@ class LinkHumanCommunity(Base):
     community: Mapped['Community'] = relationship()
 
 
+class LinkHumanMeeting(Base):
+    __tablename__ = 'link_human_meeting'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    human_id: Mapped[int] = mapped_column(ForeignKey('human.id'), nullable=False)
+    meeting_id: Mapped[int] = mapped_column(ForeignKey('meeting.id'), nullable=False)
+    human: Mapped['Human'] = relationship()
+    meeting: Mapped['Meeting'] = relationship()
+
+
 class DBAdapter:
     def __init__(self, dbpath):
         db_path_with_protocol = f'sqlite:///{dbpath}'
