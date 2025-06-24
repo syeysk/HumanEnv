@@ -1,0 +1,73 @@
+<?xml version="1.1" encoding="UTF-8" ?>
+<Box id="main_box" spacing="6">
+    <Box id="top_box" spacing="6">
+        <Grid id="top_left_box">
+		    <Row>
+			    <Picture filename="temp.png" colspan="2"></Picture>
+			</Row>
+			<Row>
+				<Label xalign="0">Идентификатор</Label>
+				<Label id="id_value">{{ entity.id }}</Label>
+			</Row>
+			<Row>
+				<Label xalign="0">Пол</Label>
+				<UniDropDown id="sex_entry"></UniDropDown>
+			</Row>
+			<Row>
+				<Label xalign="0">Год рождения</Label>
+				<SpinButton id="birth_year_entry"></SpinButton>
+			</Row>
+			<Row>
+				<Label xalign="0">Месяц рождения</Label>
+				<SpinButton id="birth_month_entry"></SpinButton>
+			</Row>
+			<Row>
+				<Label xalign="0">День рождения</Label>
+				<SpinButton id="birth_day_entry"></SpinButton>
+			</Row>
+			<Row>
+				<Label xalign="0">Возраст</Label>
+				<Label id="age_value">0</Label>
+			</Row>
+        </Grid>
+        <Grid id="top_right_box">
+			<Row>
+				<Label xalign="0">Фамилия</Label>
+				<Entry id="family_name_entry" colspan="2">{{ entity.family_name }}</Entry>
+			</Row>
+			<Row>
+				<Label xalign="0">Имя</Label>
+				<Entry id="first_name_entry" colspan="2">{{ entity.first_name }}</Entry>
+			</Row>
+			<Row>
+				<Label xalign="0">Отчество</Label>
+				<Entry id="father_name_entry" colspan="2">{{ entity.father_name }}</Entry>
+			</Row>
+			<Row>
+				<Label xalign="0">Близость</Label>
+				<SpinButton id="closing_entry" colspan="2"></SpinButton>
+			</Row>
+			<Row>
+				<Label xalign="0">Круг</Label>
+				<UniDropDown id="circle_entry" colspan="2"></UniDropDown>
+			</Row>
+			<Row>
+				<Label xalign="0">Сектор</Label>
+				<UniDropDown id="sector_entry"></UniDropDown>
+				<Button id="sector_edit_button">Edit</Button>
+			</Row>
+
+			<Row>
+				<Label xalign="0">Тип контакта</Label>
+				<UniDropDown id="book_contact_type_entry" colspan="2"></UniDropDown>
+			</Row>
+			<Row>
+				<Label xalign="0">Анализ ОИС</Label>
+				<UniDropDown id="book_did_entry" colspan="2"></UniDropDown>
+			</Row>
+        </Grid>
+    </Box>
+	<Box id="bottom_box" spacing="6">
+	    <EntityColumnView item_type="Contact" id="contacts_column_view" colspan="3" linking_table="LinkContactHuman" item_main="human" item_slave="contact"></EntityColumnView>    
+	</Box>
+</Box>

@@ -20,14 +20,10 @@ from gi.repository import GLib, Gio, Gtk, GObject
 
 BASE_DIR = Path(__file__).resolve().parent
 MENU_MAIN_PATH = BASE_DIR / 'menu_main.xml'
-#WIDGET_MAIN_PATH = BASE_DIR / 'widget_main.xml'
 DEFAULT_DB_PATH = BASE_DIR / 'default.db'
 FIELD_ID_SIZE = 30
 dbapi = None
 
-
-#with open(WIDGET_MAIN_PATH) as widget_main_file:
-#    widget_main_xml = widget_main_file.read()
 
 def populate_grid(grid, widget_map, start_top_index=0):
     for top_index, (label, entry, button) in enumerate(widget_map, start_top_index):
@@ -266,203 +262,6 @@ class UniDropDown(Gtk.DropDown):
         self.store.append(ItemDropDown(item_id, item_name))
 
 
-#@Gtk.Template(string=widget_main_xml)
-class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
-    #__gtype_name__ = "example1"
-    entity_name = 'human'
-    entity_class = db.Human
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        
-        main_box = Gtk.Box(spacing=6)
-        main_box.props.orientation = Gtk.Orientation.VERTICAL
-        self.set_child(main_box)
-
-        top_box = Gtk.Box(spacing=6)
-        top_box.props.orientation = Gtk.Orientation.HORIZONTAL
-        main_box.append(top_box)
-
-        bottom_box = Gtk.Box(spacing=6)
-        bottom_box.props.orientation = Gtk.Orientation.VERTICAL
-        main_box.append(bottom_box)
-        
-        top_left_box = Gtk.Grid()
-        top_box.append(top_left_box)
-
-        top_right_box = Gtk.Grid()
-        top_box.append(top_right_box)
-
-        # Top Left Controllers
-        
-        photo = Gtk.Picture.new_for_filename(str(BASE_DIR / 'temp.png'))
-        top_left_box.attach(photo, 0, 0, 2, 1)
-
-        id_label = Gtk.Label(label='Идентификатор')
-        id_label.props.xalign = 0
-        self.id_value = Gtk.Label(label=self.entity.id if self.entity else '')
-
-        sex_label = Gtk.Label(label='Пол')
-        sex_label.props.xalign = 0
-        sex_entry = Gtk.DropDown()
-        sex_entry.props.model = UniDropDown(tupples=tuple(SEXES.items()))
-        sex_entry.props.selected = (self.entity.sex - 1) if self.entity else 0
-        sex_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'sex')
-
-        birth_year_adjustment = Gtk.Adjustment(upper=3000, step_increment=1, page_increment=10)
-        birth_month_adjustment = Gtk.Adjustment(upper=12, step_increment=1, page_increment=10)
-        birth_day_adjustment = Gtk.Adjustment(upper=31, step_increment=1, page_increment=10)
-
-        birth_year_label = Gtk.Label(label='Год рождения')
-        birth_year_label.props.xalign = 0
-        self.birth_year_entry = Gtk.SpinButton()
-        self.birth_year_entry.props.adjustment = birth_year_adjustment
-        self.birth_year_entry.set_value(int(self.entity.birth_year) if self.entity else 0)
-        self.birth_year_entry.connect('changed', self.on_change_birth_date)
-        self.birth_year_entry.connect('changed', self.on_change_any_data, 'birth_year')
-
-        birth_month_label = Gtk.Label(label='Месяц рождения')
-        birth_month_label.props.xalign = 0
-        self.birth_month_entry = Gtk.SpinButton()
-        self.birth_month_entry.props.adjustment = birth_month_adjustment
-        self.birth_month_entry.set_value(int(self.entity.birth_month) if self.entity else 0)
-        self.birth_month_entry.connect('changed', self.on_change_birth_date)
-        self.birth_month_entry.connect('changed', self.on_change_any_data, 'birth_month')
-
-        birth_day_label = Gtk.Label(label='День рождения')
-        birth_day_label.props.xalign = 0
-        self.birth_day_entry = Gtk.SpinButton()
-        self.birth_day_entry.props.adjustment = birth_day_adjustment
-        self.birth_day_entry.set_value(int(self.entity.birth_day) if self.entity else 0)
-        self.birth_day_entry.connect('changed', self.on_change_birth_date)
-        self.birth_day_entry.connect('changed', self.on_change_any_data, 'birth_day')
-
-        age_label = Gtk.Label(label='Возраст:')
-        age_label.props.xalign = 0
-        self.age_value = Gtk.Label(label='10')
-
-        top_left_map = (
-            (id_label, self.id_value, None),
-            (sex_label, sex_entry, None),
-            (birth_year_label, self.birth_year_entry, None),
-            (birth_month_label, self.birth_month_entry, None),
-            (birth_day_label, self.birth_day_entry, None),
-            (age_label, self.age_value, None),
-        )        
-        populate_grid(top_left_box, top_left_map, 1)
-
-        # Top Right Controllers
-
-        family_name_label = Gtk.Label(label='Фамилия')
-        family_name_label.props.xalign = 0
-        family_name_entry = Gtk.Entry(text=self.entity.family_name if self.entity else '')
-        family_name_entry.connect('changed', self.on_change_any_data, 'family_name')
-        first_name_label = Gtk.Label(label='Имя')
-        first_name_label.props.xalign = 0
-        first_name_entry = Gtk.Entry(text=self.entity.first_name if self.entity else '')
-        first_name_entry.connect('changed', self.on_change_any_data, 'first_name')
-        father_name_label = Gtk.Label(label='Отчество')
-        father_name_label.props.xalign = 0
-        father_name_entry = Gtk.Entry(text=self.entity.father_name if self.entity else '')
-        father_name_entry.connect('changed', self.on_change_any_data, 'father_name')
-
-        closing_adjustment = Gtk.Adjustment(upper=20, step_increment=1, page_increment=10)
-
-        closing_label = Gtk.Label(label='Близость')
-        closing_label.props.xalign = 0
-        closing_entry = Gtk.SpinButton()
-        closing_entry.props.adjustment = closing_adjustment
-        closing_entry.set_value(int(self.entity.closing) if self.entity else 0)
-        closing_entry.connect('changed', self.on_change_any_data, 'closing')
-
-        top_right_map = (
-            (family_name_label, family_name_entry, None),
-            (first_name_label, first_name_entry, None),
-            (father_name_label, father_name_entry, None),
-            (closing_label, closing_entry, None),
-        )
-
-        populate_grid(top_right_box, top_right_map)
-        
-        circle_label = Gtk.Label(label='Круг')
-        circle_label.props.xalign = 0
-        
-        circle_entry = Gtk.DropDown()
-        circle_entry.props.model = UniDropDown(tupples=tuple(CIRCLES.items()))
-        circle_entry.props.selected = (self.entity.circle - 1) if self.entity else 0
-        circle_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'circle')
-        top_right_box.attach(circle_label, 0, len(top_right_map), 1, 1)
-        top_right_box.attach(circle_entry, 1, len(top_right_map), 2, 1)
-
-        sector_label = Gtk.Label(label='Сектор')
-        sector_label.props.xalign = 0
-        sector_entry = Gtk.DropDown()
-        sector_strings = tuple((sector.id, sector.name) for sector in dbapi.session.scalars(select(db.Sector)))
-        sector_entry.props.model = UniDropDown(tupples=sector_strings)
-        sector_entry.props.selected = (self.entity.sector_id - 1) if self.entity else 0
-        sector_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'sector_id')
-        sector_edit_button = Gtk.Button(label='Edit')
-        sector_edit_button.connect('clicked', self.on_sector_edit_clicked)
-        top_right_box.attach(sector_label, 0, len(top_right_map) + 1, 1, 1)
-        top_right_box.attach(sector_entry, 1, len(top_right_map) + 1, 1, 1)
-        top_right_box.attach(sector_edit_button, 2, len(top_right_map) + 1, 1, 1)
-
-        book_contact_type_label = Gtk.Label(label='Тип контакта')
-        book_contact_type_entry = Gtk.DropDown()
-        book_contact_type_entry.props.model = UniDropDown(tupples=tuple(BOOK_CONTACT_TYPES.items()))
-        book_contact_type_entry.props.selected = (self.entity.book_contact_type - 1) if self.entity else 0
-        book_contact_type_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'book_contact_type')
-        top_right_box.attach(book_contact_type_label, 0, len(top_right_map) + 2, 1, 1)
-        top_right_box.attach(book_contact_type_entry, 1, len(top_right_map) + 2, 2, 1)
-
-        book_did_label = Gtk.Label(label='Анализ ОИС')
-        book_did_entry = Gtk.DropDown()
-        book_did_entry.props.model = UniDropDown(tupples=tuple(BOOK_DID.items()))
-        book_did_entry.props.selected = (self.entity.book_did - 1) if self.entity else 0
-        book_did_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'book_did')
-        top_right_box.attach(book_did_label, 0, len(top_right_map) + 3, 1, 1)
-        top_right_box.attach(book_did_entry, 1, len(top_right_map) + 3, 2, 1)
-
-        # Bottom Controllers
-
-        self.contacts_column_view = EntityColumnView(
-            self,
-            Contact,
-            self.on_contact_added,
-        )
-        bottom_box.append(self.contacts_column_view.buttons_box)
-        bottom_box.append(self.contacts_column_view.view)
-
-        if self.entity:
-            self.update_contact_list()
-
-        links_label = Gtk.Label(label='Links')
-        bottom_box.append(links_label)
-    
-    def update_contact_list(self):
-        for link_contact in dbapi.session.scalars(select(db.LinkContactHuman).where(db.LinkContactHuman.human_id==self.entity.id)):
-            self.contacts_column_view.append(link_contact.contact)
-
-    def on_change_birth_date(self, spin_button):
-        birth_date = date(
-            self.birth_year_entry.get_value_as_int() or 1,
-            self.birth_month_entry.get_value_as_int() or 1,
-            self.birth_day_entry.get_value_as_int() or 1,
-        )
-        age_timedelta = date.today() - birth_date
-        self.age_value.set_text(f'{age_timedelta.days // 365} лет')
-    
-    def on_contact_added(self, widget, contact_id):
-        dbapi.session.add(db.LinkContactHuman(human_id=self.entity.id, contact_id=contact_id))
-        dbapi.session.commit()
-        self.contacts_column_view.clear()
-        self.update_contact_list()
-
-    def on_sector_edit_clicked(self, button):
-        window = SectorListWindow(transient_for=self, title='Sector List', modal=True)
-        window.present()     
-
-
 class WindowBuilder:
     def __init__(self, path_to_xml, context, parent_window=None):
         import xml.etree.ElementTree as ET
@@ -486,6 +285,8 @@ class WindowBuilder:
                 gtkclass = LinkedEntityColumnView
             elif tag == 'UniDropDown':
                 gtkclass = UniDropDown
+            elif tag == 'Picture':
+                gtkclass = Gtk.Picture.new_for_filename
             else:
                 gtkclass = getattr(Gtk, tag)
 
@@ -501,6 +302,8 @@ class WindowBuilder:
                 kwargs['linking_table'] = getattr(db, node.attrib.pop('linking_table'))
                 kwargs['item_main'] = node.attrib.pop('item_main')
                 kwargs['item_slave'] = node.attrib.pop('item_slave')
+            elif tag == 'Picture':
+                kwargs['filename'] = str(BASE_DIR / node.attrib.pop('filename'))
             
             colspan = int(node.attrib.pop('colspan', '1'))
 
@@ -509,7 +312,7 @@ class WindowBuilder:
                 if attr_name == 'id':
                     setattr(self, attr_value, gtkelem)
                 else:
-                    if attr_name in {'selected'}:
+                    if attr_name in {'selected', 'xalign', 'spacing'}:
                         attr_value = int(attr_value) if attr_value else 0
 
                     setattr(gtkelem.props, attr_name, attr_value)
@@ -525,16 +328,126 @@ class WindowBuilder:
                         parent_gtk.attach(gtkelem, data['x'], data['y'], colspan, 1)
 
                     data['x'] += 1
+                elif parent_type == 'Box':
+                    if tag == 'EntityColumnView':
+                        parent_gtk.append(gtkelem.buttons_box)
+                        parent_gtk.append(gtkelem.view)
+                    else:
+                        parent_gtk.append(gtkelem)
         
             if tag == 'Grid':
                 self.parents.append((gtkelem, tag, {'x': 0, 'y': -1}))
+            elif tag == 'Box':
+                self.parents.append((gtkelem, tag, None))
 
         for child in node:
             self._go(child)
 
-        if tag == 'Grid':
+        if tag in {'Grid', 'Box'}:
             if self.parents:
                 self.parents.pop(-1)
+
+
+class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
+    entity_name = 'human'
+    entity_class = db.Human
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        builder = WindowBuilder(BASE_DIR / 'human.xml', {'entity': self.entity}, parent_window=self)
+        self.set_child(builder.main_box)
+        self.id_value = builder.id_value
+
+        builder.main_box.props.orientation = Gtk.Orientation.VERTICAL        
+        builder.top_box.props.orientation = Gtk.Orientation.HORIZONTAL
+        builder.bottom_box.props.orientation = Gtk.Orientation.VERTICAL
+
+        # Top Left Controllers
+
+        for item_id, item_name in SEXES.items():
+            builder.sex_entry.append(item_id=item_id, item_name=item_name)
+
+        builder.sex_entry.props.selected = (self.entity.sex - 1) if self.entity else 0
+        builder.sex_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'sex')
+
+        birth_year_adjustment = Gtk.Adjustment(upper=3000, step_increment=1, page_increment=10)
+        birth_month_adjustment = Gtk.Adjustment(upper=12, step_increment=1, page_increment=10)
+        birth_day_adjustment = Gtk.Adjustment(upper=31, step_increment=1, page_increment=10)
+
+        self.birth_year_entry = builder.birth_year_entry
+        self.birth_year_entry.props.adjustment = birth_year_adjustment
+        self.birth_year_entry.set_value(int(self.entity.birth_year) if self.entity else 0)
+        self.birth_year_entry.connect('changed', self.on_change_birth_date)
+        self.birth_year_entry.connect('changed', self.on_change_any_data, 'birth_year')
+
+        self.birth_month_entry = builder.birth_month_entry
+        self.birth_month_entry.props.adjustment = birth_month_adjustment
+        self.birth_month_entry.set_value(int(self.entity.birth_month) if self.entity else 0)
+        self.birth_month_entry.connect('changed', self.on_change_birth_date)
+        self.birth_month_entry.connect('changed', self.on_change_any_data, 'birth_month')
+
+        self.birth_day_entry = builder.birth_day_entry
+        self.birth_day_entry.props.adjustment = birth_day_adjustment
+        self.birth_day_entry.set_value(int(self.entity.birth_day) if self.entity else 0)
+        self.birth_day_entry.connect('changed', self.on_change_birth_date)
+        self.birth_day_entry.connect('changed', self.on_change_any_data, 'birth_day')
+
+        self.age_value = builder.age_value
+
+        # Top Right Controllers
+
+        builder.family_name_entry.connect('changed', self.on_change_any_data, 'family_name')
+        builder.first_name_entry.connect('changed', self.on_change_any_data, 'first_name')
+        builder.father_name_entry.connect('changed', self.on_change_any_data, 'father_name')
+
+        closing_adjustment = Gtk.Adjustment(upper=20, step_increment=1, page_increment=10)
+
+        builder.closing_entry.props.adjustment = closing_adjustment
+        builder.closing_entry.set_value(int(self.entity.closing) if self.entity else 0)
+        builder.closing_entry.connect('changed', self.on_change_any_data, 'closing')
+        
+        for item_id, item_name in CIRCLES.items():
+            builder.circle_entry.append(item_id=item_id, item_name=item_name)
+
+        builder.circle_entry.props.selected = (self.entity.circle - 1) if self.entity else 0
+        builder.circle_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'circle')
+
+        for sector in dbapi.session.scalars(select(db.Sector)):
+            builder.sector_entry.append(item_id=sector.id, item_name=sector.name)
+
+        builder.sector_entry.props.selected = (self.entity.sector_id - 1) if self.entity else 0
+        builder.sector_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'sector_id')
+        builder.sector_edit_button.connect('clicked', self.on_sector_edit_clicked)
+
+        for item_id, item_name in BOOK_CONTACT_TYPES.items():
+            builder.book_contact_type_entry.append(item_id=item_id, item_name=item_name)
+
+        builder.book_contact_type_entry.props.selected = (self.entity.book_contact_type - 1) if self.entity else 0
+        builder.book_contact_type_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'book_contact_type')
+
+        for item_id, item_name in BOOK_DID.items():
+            builder.book_did_entry.append(item_id=item_id, item_name=item_name)
+
+        builder.book_did_entry.props.selected = (self.entity.book_did - 1) if self.entity else 0
+        builder.book_did_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'book_did')
+
+        # Bottom Controllers
+
+        if self.entity:
+            builder.contacts_column_view.update_list()
+
+    def on_change_birth_date(self, spin_button):
+        birth_date = date(
+            self.birth_year_entry.get_value_as_int() or 1,
+            self.birth_month_entry.get_value_as_int() or 1,
+            self.birth_day_entry.get_value_as_int() or 1,
+        )
+        age_timedelta = date.today() - birth_date
+        self.age_value.set_text(f'{age_timedelta.days // 365} лет')
+
+    def on_sector_edit_clicked(self, button):
+        window = SectorListWindow(transient_for=self, title='Sector List', modal=True)
+        window.present()     
 
 
 class ContactTypeWindow(EntityEditWindow, Gtk.ApplicationWindow):
