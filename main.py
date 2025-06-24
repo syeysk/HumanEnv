@@ -104,11 +104,11 @@ class EntityColumnView:
         cell = list_item.get_child()
         cell._binding = None
 
-    def __init__(self, parent_window, item_type, on_item_created=None, on_delete_clicked=None):
+    def __init__(self, parent_window, item_type, on_entity_added=None, on_delete_clicked=None):
         # Buttons
 
         self.parent_window = parent_window
-        self.on_item_created = on_item_created
+        self.on_entity_added = on_entity_added
 
         self.buttons_box = Gtk.Box(spacing=6)
         self.buttons_box.props.orientation = Gtk.Orientation.HORIZONTAL
@@ -160,7 +160,7 @@ class EntityColumnView:
             modal=True,
             entity_id=entity_id,
         )
-        window.connect('entity_added', self.on_item_created)
+        window.connect('entity_added', self.on_entity_added)
         window.present()
 
     def on_activate_item(self, column_view, position):
@@ -169,6 +169,26 @@ class EntityColumnView:
 
     def on_add_item_clicked(self, _):
         self.open_item_window()
+
+
+class LinkedEntityColumnView(EntityColumnView):
+    def __init__(self, parent_window, item_type, linking_table, item_main, item_slave):
+        self.linking_table = linking_table
+        self.item_main = item_main
+        self.item_slave = item_slave
+        super().__init__(parent_window, item_type, self.on_entity_added)
+
+    def update_list(self):
+        query = select(self.linking_table).where(getattr(self.linking_table, f'{self.item_main}_id')==self.parent_window.entity.id)
+        for link in dbapi.session.scalars(query):
+            self.append(getattr(link, self.item_slave))
+
+    def on_entity_added(self, widget, linked_entity_id):
+        kwargs = {f'{self.item_main}_id': self.parent_window.entity.id, f'{self.item_slave}_id': linked_entity_id}
+        dbapi.session.add(self.linking_table(**kwargs))
+        dbapi.session.commit()
+        self.clear()
+        self.update_list()
 
 
 class EntityListWindow(Gtk.ApplicationWindow):
@@ -187,13 +207,13 @@ class EntityListWindow(Gtk.ApplicationWindow):
         )
         box.append(self.column_view.buttons_box)
         box.append(self.column_view.view)
-        self.update_entity_list()
+        self.update_list()
 
     def on_entity_added(self, widget, _):
         self.column_view.clear()
-        self.update_entity_list()
+        self.update_list()
 
-    def update_entity_list(self):
+    def update_list(self):
         for entity in dbapi.session.scalars(select(self.entity_db_class)):
             self.column_view.append(entity)
 
@@ -463,7 +483,7 @@ class WindowBuilder:
             data['y'] += 1
         else:
             if tag == 'EntityColumnView':
-                gtkclass = EntityColumnView
+                gtkclass = LinkedEntityColumnView
             elif tag == 'UniDropDown':
                 gtkclass = UniDropDown
             else:
@@ -478,7 +498,9 @@ class WindowBuilder:
             elif tag == 'EntityColumnView':
                 kwargs['parent_window'] = self.parent_window
                 kwargs['item_type'] = globals()[node.attrib.pop('item_type')]
-                kwargs['on_item_created'] = getattr(self.parent_window, node.attrib.pop('on_item_added'))
+                kwargs['linking_table'] = getattr(db, node.attrib.pop('linking_table'))
+                kwargs['item_main'] = node.attrib.pop('item_main')
+                kwargs['item_slave'] = node.attrib.pop('item_slave')
             
             colspan = int(node.attrib.pop('colspan', '1'))
 
@@ -549,20 +571,8 @@ class CommunityWindow(EntityEditWindow, Gtk.ApplicationWindow):
         self.set_child(builder.grid)
         self.id_value = builder.id_value
         builder.name_entry.connect('changed', self.on_change_any_data, 'name')
-
-        self.contacts_column_view = builder.contacts_column_view
         if self.entity:
-            self.update_contact_list()
-
-    def on_contact_added(self, widget, contact_id):
-        dbapi.session.add(db.LinkContactCommunity(community_id=self.entity.id, contact_id=contact_id))
-        dbapi.session.commit()
-        self.contacts_column_view.clear()
-        self.update_contact_list()
-
-    def update_contact_list(self):
-        for link_contact in dbapi.session.scalars(select(db.LinkContactCommunity).where(db.LinkContactCommunity.community_id==self.entity.id)):
-            self.contacts_column_view.append(link_contact.contact)
+            builder.contacts_column_view.update_list()
 
 
 class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
@@ -582,20 +592,8 @@ class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
         builder.aim_entry.props.selected = self.entity.aim.id if self.entity else 0
         builder.aim_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'aim_id')
         builder.aim_edit_button.connect('clicked', self.on_aim_edit_clicked)
-
-        self.humans_column_view = builder.humans_column_view
         if self.entity:
-            self.update_human_list()
-
-    def on_human_added(self, widget, human_id):
-        dbapi.session.add(db.LinkTaskHuman(task_id=self.entity.id, human_id=human_id))
-        dbapi.session.commit()
-        self.humans_column_view.clear()
-        self.update_human_list()
-
-    def update_human_list(self):
-        for link_human in dbapi.session.scalars(select(db.LinkTaskHuman).where(db.LinkTaskHuman.task_id==self.entity.id)):
-            self.humans_column_view.append(link_human.human)
+            builder.humans_column_view.update_list()
 
     def on_aim_edit_clicked(self, button):
         window = TaskAimListWindow(transient_for=self, title='Task Aim List', modal=True)
@@ -624,20 +622,8 @@ class MeetingWindow(EntityEditWindow, Gtk.ApplicationWindow):
         self.set_child(builder.grid)
         self.id_value = builder.id_value
         builder.title_entry.connect('changed', self.on_change_any_data, 'title')
-
-        self.humans_column_view = builder.humans_column_view
         if self.entity:
-            self.update_human_list()
-
-    def on_human_added(self, widget, human_id):
-        dbapi.session.add(db.LinkHumanMeeting(meeting_id=self.entity.id, human_id=human_id))
-        dbapi.session.commit()
-        self.humans_column_view.clear()
-        self.update_human_list()
-
-    def update_human_list(self):
-        for link_human in dbapi.session.scalars(select(db.LinkHumanMeeting).where(db.LinkHumanMeeting.meeting_id==self.entity.id)):
-            self.humans_column_view.append(link_human.human)
+            builder.humans_column_view.update_list()
 
 
 class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
@@ -647,82 +633,28 @@ class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.set_default_size(400, 600)
+        builder = WindowBuilder(BASE_DIR / 'contact.xml', {'entity': self.entity}, parent_window=self)
+        self.set_child(builder.grid)
+        self.id_value = builder.id_value
+        builder.value_entry.connect('changed', self.on_change_any_data, 'value')
+        for contact_type in dbapi.session.scalars(select(db.ContactType)):
+            builder.type_entry.append(item_id=contact_type.id, item_name=contact_type.name)
 
-        grid = Gtk.Grid()
-        self.set_child(grid)
-        
-        id_label = Gtk.Label(label='Идентификатор')
-        self.id_value = Gtk.Label(label=self.entity.id if self.entity else '')
+        builder.type_entry.props.selected = (self.entity.type_id - 1) if self.entity else 0
+        builder.type_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'type_id')
+        builder.type_edit_button.connect('clicked', self.on_type_edit_clicked)
+        for item_id, item_name in CONTACT_STATUSES.items():
+            builder.status_entry.append(item_id=item_id, item_name=item_name)
 
-        value_label = Gtk.Label(label='Значение')
-        value_entry = Gtk.Entry(text=self.entity.value if self.entity else '')
-        value_entry.connect('changed', self.on_change_any_data, 'value')
-
-        type_label = Gtk.Label(label='Тип')
-        type_entry = Gtk.DropDown()
-        type_strings = tuple((contact_type.id, contact_type.name) for contact_type in dbapi.session.scalars(select(db.ContactType)))
-        type_entry.props.model = UniDropDown(tupples=type_strings)
-        type_entry.props.selected = (self.entity.type_id - 1) if self.entity else 0
-        type_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'type_id')
-        type_edit_button = Gtk.Button(label='Edit')
-        type_edit_button.connect('clicked', self.on_type_edit_clicked)
-
-        status_label = Gtk.Label(label='Статус')
-        status_entry = Gtk.DropDown()
-        status_entry.props.model = UniDropDown(tupples=tuple(CONTACT_STATUSES.items()))
-        status_entry.props.selected = (self.entity.status - 1) if self.entity else 0
-        status_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'status')
-
-        top_right_map = (
-            (id_label, self.id_value, None),
-            (value_label, value_entry, None),
-            (type_label, type_entry, type_edit_button),
-            (status_label, status_entry, None),
-        )
-        populate_grid(grid, top_right_map)
-        
-        self.humans_column_view = EntityColumnView(
-            self,
-            Human,
-            self.on_human_added,
-        )
-        grid.attach(self.humans_column_view.buttons_box, 0, len(top_right_map), 3, 1)
-        grid.attach(self.humans_column_view.view, 0, len(top_right_map) + 1, 3, 5)
-
-        self.communities_column_view = EntityColumnView(
-            self,
-            Community,
-            self.on_community_added,
-        )
-        grid.attach(self.communities_column_view.buttons_box, 0, len(top_right_map) + 7, 3, 1)
-        grid.attach(self.communities_column_view.view, 0, len(top_right_map) + 10, 3, 5)
+        builder.status_entry.props.selected = (self.entity.status - 1) if self.entity else 0
+        builder.status_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'status')
         if self.entity:
-            self.update_human_list()
-            self.update_community_list()
+            builder.humans_column_view.update_list()
+            builder.communities_column_view.update_list()
     
     def on_type_edit_clicked(self, button):
         window = ContactTypeListWindow(transient_for=self, title='Contact Type List', modal=True)
         window.present()
-
-    def on_human_added(self, widget, human_id):
-        dbapi.session.add(db.LinkContactHuman(human_id=human_id, contact_id=self.entity.id))
-        dbapi.session.commit()
-        self.humans_column_view.clear()
-        self.update_human_list()
-
-    def update_human_list(self):
-        for link_contact in dbapi.session.scalars(select(db.LinkContactHuman).where(db.LinkContactHuman.contact_id==self.entity.id)):
-            self.humans_column_view.append(link_contact.human)
-
-    def on_community_added(self, widget, community_id):
-        dbapi.session.add(db.LinkContactCommunity(community_id=community_id, contact_id=self.entity.id))
-        dbapi.session.commit()
-        self.communities_column_view.clear()
-        self.update_community_list()
-
-    def update_community_list(self):
-        for link_contact in dbapi.session.scalars(select(db.LinkContactCommunity).where(db.LinkContactCommunity.contact_id==self.entity.id)):
-            self.communities_column_view.append(link_contact.community)
 
  
 class Human(GObject.Object):
@@ -921,7 +853,7 @@ class TaskAim(GObject.Object):
 
 class Meeting(GObject.Object):
     __gtype_name__  = 'Meeting'
-    columns = (('ID', 'entity_id', FIELD_ID_SIZE), ('Название', 'meeting_name', None))
+    columns = (('ID', 'entity_id', FIELD_ID_SIZE), ('Название', 'meeting_title', None))
     window = MeetingWindow
 
     def __init__(self, entity_id, meeting_title):
@@ -940,7 +872,7 @@ class Meeting(GObject.Object):
     def entity_id(self):
         return self._entity_id
 
-    @GObject.Property(type=int)
+    @GObject.Property(type=str)
     def meeting_title(self):
         return self._meeting_title
 

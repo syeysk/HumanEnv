@@ -1,0 +1,26 @@
+<?xml version="1.1" encoding="UTF-8" ?>
+<Grid id="grid">
+    <Row>
+        <Label id="id_label">Идентификатор</Label>
+        <Label id="id_value">{{ entity.id }}</Label>
+	</Row>
+    <Row>
+        <Label id="value_label">Значение</Label>
+        <Entry id="value_entry" colspan="2">{{ entity.value }}</Entry>
+	</Row>
+    <Row>
+        <Label id="type_label">Тип</Label>
+        <UniDropDown id="type_entry"></UniDropDown>
+        <Button id="type_edit_button">Edit</Button>
+	</Row>
+    <Row>
+        <Label id="status_label">Статус</Label>
+        <UniDropDown id="status_entry" colspan="2"></UniDropDown>
+	</Row>
+	<Row>
+	    <EntityColumnView item_type="Human" id="humans_column_view" colspan="3" linking_table="LinkContactHuman" item_main="contact" item_slave="human"></EntityColumnView>    
+	</Row>
+	<Row>
+	    <EntityColumnView item_type="Community" id="communities_column_view" colspan="3" linking_table="LinkContactCommunity" item_main="contact" item_slave="community"></EntityColumnView>    
+	</Row>
+</Grid>

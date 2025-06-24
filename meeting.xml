@@ -9,6 +9,6 @@
         <Entry id="title_entry" colspan="2">{{ entity.title }}</Entry>
 	</Row>
 	<Row>
-	    <EntityColumnView item_type="Human" on_item_added="on_human_added" id="humans_column_view" colspan="3"></EntityColumnView>    
+	    <EntityColumnView item_type="Human" id="humans_column_view" colspan="3" linking_table="LinkHumanMeeting" item_main="meeting" item_slave="human"></EntityColumnView>    
 	</Row>
 </Grid>
