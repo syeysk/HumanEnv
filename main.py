@@ -25,14 +25,6 @@ FIELD_ID_SIZE = 30
 dbapi = None
 
 
-def populate_grid(grid, widget_map, start_top_index=0):
-    for top_index, (label, entry, button) in enumerate(widget_map, start_top_index):
-        grid.attach(label, 0, top_index, 1, 1)
-        grid.attach(entry, 1, top_index, 1 if button else 2, 1)
-        if button:
-            grid.attach(button, 2, top_index, 1, 1)
-
-
 class EntityEditWindow(Gtk.ApplicationWindow):
     entity_name = None
     entity_class = None
