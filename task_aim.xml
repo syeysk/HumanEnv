@@ -1,11 +1,11 @@
 <?xml version="1.1" encoding="UTF-8" ?>
-<Grid id="grid">
+<Grid id="grid" column_spacing="6" row_spacing="6" margin_top="6" margin_start="6" margin_end="6" margin_bottom="6">
     <Row>
-        <Label>Идентификатор</Label>
-        <Label id="id_value">{{ entity.id }}</Label>
+        <Label xalign="0">Идентификатор</Label>
+        <Label id="id_value" xalign="0">{{ entity.id }}</Label>
 	</Row>
     <Row>
-        <Label>Название</Label>
+        <Label xalign="0">Название</Label>
         <Entry id="name_entry" colspan="2">{{ entity.name }}</Entry>
 	</Row>
 </Grid>

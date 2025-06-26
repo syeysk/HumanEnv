@@ -1,20 +1,20 @@
 <?xml version="1.1" encoding="UTF-8" ?>
-<Grid id="grid">
+<Grid id="grid" column_spacing="6" row_spacing="6" margin_top="6" margin_start="6" margin_end="6" margin_bottom="6">
     <Row>
-        <Label>Идентификатор</Label>
-        <Label id="id_value">{{ entity.id }}</Label>
+        <Label xalign="0">Идентификатор</Label>
+        <Label id="id_value" xalign="0">{{ entity.id }}</Label>
 	</Row>
     <Row>
-        <Label>Значение</Label>
+        <Label xalign="0">Значение</Label>
         <Entry id="value_entry" colspan="2">{{ entity.value }}</Entry>
 	</Row>
     <Row>
-        <Label>Тип</Label>
+        <Label xalign="0">Тип</Label>
         <UniDropDown id="type_entry"></UniDropDown>
         <Button id="type_edit_button">Edit</Button>
 	</Row>
     <Row>
-        <Label>Статус</Label>
+        <Label xalign="0">Статус</Label>
         <UniDropDown id="status_entry" colspan="2"></UniDropDown>
 	</Row>
 	<Row>

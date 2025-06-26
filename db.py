@@ -196,6 +196,25 @@ class LinkHumanMeeting(Base):
     meeting: Mapped['Meeting'] = relationship()
 
 
+class HumanRelationType(Base):
+    __tablename__ = 'human_relation_type'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+
+
+class LinkHumanHuman(Base):
+    __tablename__ = 'link_human_human'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    human_id: Mapped[int] = mapped_column(ForeignKey('human.id'), nullable=False)
+    human_linked_id: Mapped[int] = mapped_column(ForeignKey('human.id'), nullable=False)
+    relation_id: Mapped[int] = mapped_column(ForeignKey('human_relation_type.id'), nullable=False, default=1)
+    human: Mapped['Human'] = relationship(foreign_keys=[human_id])
+    human_linked: Mapped['Human'] = relationship(foreign_keys=[human_linked_id])
+    relation: Mapped['HumanRelationType'] = relationship()
+
+
 class DBAdapter:
     def __init__(self, dbpath):
         db_path_with_protocol = f'sqlite:///{dbpath}'

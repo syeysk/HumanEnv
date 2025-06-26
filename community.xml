@@ -1,14 +1,20 @@
 <?xml version="1.1" encoding="UTF-8" ?>
-<Grid id="grid">
+<Grid id="grid" column_spacing="6" row_spacing="6" margin_top="6" margin_start="6" margin_end="6" margin_bottom="6">
     <Row>
-        <Label>Идентификатор</Label>
-        <Label id="id_value">{{ entity.id }}</Label>
+        <Label xalign="0">Идентификатор</Label>
+        <Label id="id_value" xalign="0">{{ entity.id }}</Label>
 	</Row>
     <Row>
-        <Label>Название</Label>
+        <Label xalign="0">Название</Label>
         <Entry id="name_entry" colspan="2">{{ entity.name }}</Entry>
 	</Row>
 	<Row>
-	    <EntityColumnView item_type="Contact" id="contacts_column_view" linking_table="LinkContactCommunity" item_main="community" item_slave="contact" colspan="3"></EntityColumnView>    
+	    <EntityColumnView item_type="Human" id="humans_column_view" linking_table="LinkHumanCommunity" item_main="community" item_slave="human" colspan="3"></EntityColumnView>
+	</Row>
+    <Row>
+	    <EntityColumnView item_type="Contact" id="contacts_column_view" linking_table="LinkContactCommunity" item_main="community" item_slave="contact" colspan="3"></EntityColumnView>
+	</Row>
+    <Row>
+	    <EntityColumnView item_type="Task" id="tasks_column_view" linking_table="LinkTaskCommunity" item_main="community" item_slave="task" colspan="3"></EntityColumnView>
 	</Row>
 </Grid>

@@ -106,8 +106,8 @@ class EntityColumnView:
         self.parent_window = parent_window
         self.on_entity_added = on_entity_added
 
-        self.buttons_box = Gtk.Box(spacing=6)
-        self.buttons_box.props.orientation = Gtk.Orientation.HORIZONTAL
+        buttons_box = Gtk.Box(spacing=6)
+        buttons_box.props.orientation = Gtk.Orientation.HORIZONTAL
         
         delete_button = Gtk.Button(label='Удалить')
         if on_delete_clicked:
@@ -118,17 +118,20 @@ class EntityColumnView:
 
         select_button = Gtk.Button(label='Выбрать')
 
-        self.buttons_box.append(delete_button)
-        self.buttons_box.append(add_button)
-        self.buttons_box.append(select_button)
+        sign_label = Gtk.Label(label=f'{item_type.__gtype_name__} list')
+
+        buttons_box.append(delete_button)
+        buttons_box.append(add_button)
+        buttons_box.append(select_button)
+        buttons_box.append(sign_label)
 
         # Item's list
     
         self.item_type_class = item_type
         self.list_store = Gio.ListStore(item_type=item_type)
         selection = Gtk.SingleSelection(model=self.list_store)
-        self.view = Gtk.ColumnView(model=selection)
-        self.view.connect('activate', self.on_activate_item)
+        view = Gtk.ColumnView(model=selection)
+        view.connect('activate', self.on_activate_item)
         for field_title, field_name, size in item_type.columns:
             factory = Gtk.SignalListItemFactory()
             factory.connect('setup', self._on_factory_setup)
@@ -141,7 +144,12 @@ class EntityColumnView:
             else:
                 column.props.expand = True
 
-            self.view.append_column(column)
+            view.append_column(column)
+
+        self.box = Gtk.Box(spacing=2)
+        self.box.props.orientation = Gtk.Orientation.VERTICAL
+        self.box.append(buttons_box)
+        self.box.append(view)
 
     def append(self, db_object):
          self.list_store.append(self.item_type_class.from_db_object(db_object))
@@ -194,6 +202,10 @@ class EntityListWindow(Gtk.ApplicationWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         box = Gtk.Box()
+        box.props.margin_top = 6
+        box.props.margin_bottom = 6
+        box.props.margin_start = 6
+        box.props.margin_end = 6
         box.props.orientation = Gtk.Orientation.VERTICAL
         self.set_child(box)
         self.column_view = EntityColumnView(
@@ -201,8 +213,7 @@ class EntityListWindow(Gtk.ApplicationWindow):
             self.entity_type_class,
             self.on_entity_added,
         )
-        box.append(self.column_view.buttons_box)
-        box.append(self.column_view.view)
+        box.append(self.column_view.box)
         self.update_list()
 
     def on_entity_added(self, widget, _):
@@ -312,7 +323,7 @@ class WindowBuilder:
                 if attr_name == 'id':
                     setattr(self, attr_value, gtkelem)
                 else:
-                    if attr_name in {'selected', 'xalign', 'spacing'}:
+                    if attr_name in {'selected', 'xalign', 'spacing', 'margin_top', 'margin_start', 'margin_bottom', 'margin_end', 'column_spacing', 'row_spacing'}:
                         attr_value = int(attr_value) if attr_value else 0
 
                     setattr(gtkelem.props, attr_name, attr_value)
@@ -321,17 +332,15 @@ class WindowBuilder:
                 parent_gtk, parent_type, data = self.parents[-1]
                 if parent_type == 'Grid':
                     if tag == 'EntityColumnView':
-                        parent_gtk.attach(gtkelem.buttons_box, data['x'], data['y'], colspan, 1)
-                        parent_gtk.attach(gtkelem.view, data['x'], data['y'] + 1, colspan, 5)
-                        data['y'] += 5
+                        parent_gtk.attach(gtkelem.box, data['x'], data['y'], colspan, 1)
+                        data['y'] += 6
                     else:
                         parent_gtk.attach(gtkelem, data['x'], data['y'], colspan, 1)
 
                     data['x'] += 1
                 elif parent_type == 'Box':
                     if tag == 'EntityColumnView':
-                        parent_gtk.append(gtkelem.buttons_box)
-                        parent_gtk.append(gtkelem.view)
+                        parent_gtk.append(gtkelem.box)
                     else:
                         parent_gtk.append(gtkelem)
         
@@ -435,6 +444,10 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
         if self.entity:
             builder.contacts_column_view.update_list()
+            builder.communities_column_view.update_list()
+            builder.meetings_column_view.update_list()
+            builder.tasks_column_view.update_list()
+            builder.humans_column_view.update_list()
 
     def on_change_birth_date(self, spin_button):
         birth_date = date(
@@ -485,7 +498,9 @@ class CommunityWindow(EntityEditWindow, Gtk.ApplicationWindow):
         self.id_value = builder.id_value
         builder.name_entry.connect('changed', self.on_change_any_data, 'name')
         if self.entity:
+            builder.humans_column_view.update_list()
             builder.contacts_column_view.update_list()
+            builder.tasks_column_view.update_list()
 
 
 class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
@@ -507,6 +522,7 @@ class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
         builder.aim_edit_button.connect('clicked', self.on_aim_edit_clicked)
         if self.entity:
             builder.humans_column_view.update_list()
+            builder.communities_column_view.update_list()
 
     def on_aim_edit_clicked(self, button):
         window = TaskAimListWindow(transient_for=self, title='Task Aim List', modal=True)
@@ -535,6 +551,7 @@ class MeetingWindow(EntityEditWindow, Gtk.ApplicationWindow):
         self.set_child(builder.grid)
         self.id_value = builder.id_value
         builder.title_entry.connect('changed', self.on_change_any_data, 'title')
+        #builder.description_entry.connect('changed', self.on_change_any_data, 'description')
         if self.entity:
             builder.humans_column_view.update_list()
 
@@ -818,6 +835,8 @@ class AppWindow(Gtk.ApplicationWindow):
 
         self.box = Gtk.Box(spacing=6)
         self.box.props.orientation = Gtk.Orientation.HORIZONTAL
+        self.box.props.margin_top = 6
+        self.box.props.margin_start = 6
         left_box = Gtk.Box(spacing=6)
         left_box.props.orientation = Gtk.Orientation.VERTICAL
 
@@ -863,8 +882,7 @@ class AppWindow(Gtk.ApplicationWindow):
             lambda widget, _: self.on_entity_added(widget, _, entity_db_class),
         )
         self.update_entity_list(entity_db_class)
-        self.main_box.append(self.entities_column_view.buttons_box)
-        self.main_box.append(self.entities_column_view.view)
+        self.main_box.append(self.entities_column_view.box)
 
     def on_show_map(self, action, value):
         pass
