@@ -209,8 +209,9 @@ class LinkedEntityColumnView(EntityColumnView):
             self.update_list()
 
     def on_entity_deleted(self, entity_id):
-        print(entity_id, self.linking_table)
-        dbapi.session.execute(delete(self.linking_table).where(self.linking_table.id==entity_id))
+        cond_left = getattr(self.linking_table, f'{self.item_main}_id') == self.parent_window.entity.id
+        cond_right = getattr(self.linking_table, f'{self.item_slave}_id') == entity_id
+        dbapi.session.execute(delete(self.linking_table).where(cond_left, cond_right))
         dbapi.session.commit()
         self.clear()
         self.update_list()
