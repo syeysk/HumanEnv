@@ -92,29 +92,32 @@ class EntityColumnView:
         cell = list_item.get_child()
         cell._binding = None
 
-    def __init__(self, parent_window, item_type, on_entity_added=None, on_delete_clicked=None):
+    def __init__(self, parent_window, item_type, on_entity_added=None, on_delete_clicked=None, on_entity_selected=None):
         # Buttons
 
         self.parent_window = parent_window
         self.on_entity_added = on_entity_added
+        self.on_entity_selected = on_entity_selected
 
         buttons_box = Gtk.Box(spacing=6)
         buttons_box.props.orientation = Gtk.Orientation.HORIZONTAL
         
-        delete_button = Gtk.Button(label='Удалить')
         if on_delete_clicked:
-            delete_button.connect('clicked', on_delete_clicked)
+            delete_button = Gtk.Button(label='Удалить')
+            #delete_button.connect('clicked', on_delete_clicked)
+            buttons_box.append(delete_button)
 
-        add_button = Gtk.Button(label='Добавить')
-        add_button.connect('clicked', self.on_add_item_clicked)
+        if on_entity_added:
+            add_button = Gtk.Button(label='Добавить')
+            add_button.connect('clicked', self.on_add_item_clicked)
+            buttons_box.append(add_button)
 
-        select_button = Gtk.Button(label='Выбрать')
+        if on_entity_selected:
+            select_button = Gtk.Button(label='Выбрать')
+            select_button.connect('clicked', self.on_select_item_clicked)            
+            buttons_box.append(select_button)
 
         sign_label = Gtk.Label(label=f'{item_type.__gtype_name__} list')
-
-        buttons_box.append(delete_button)
-        buttons_box.append(add_button)
-        buttons_box.append(select_button)
         buttons_box.append(sign_label)
 
         # Item's list
@@ -149,7 +152,7 @@ class EntityColumnView:
     def clear(self):
         self.list_store.remove_all()
 
-    def open_item_window(self, entity_id=None):
+    def open_adding_item_window(self, entity_id=None):
         window = self.item_type_class.window(
             transient_for=self.parent_window,
             title=self.item_type_class.__gtype_name__,
@@ -161,10 +164,20 @@ class EntityColumnView:
 
     def on_activate_item(self, column_view, position):
         item = self.list_store.get_item(position)
-        self.open_item_window(item.entity_id)
+        self.open_adding_item_window(item.entity_id)
 
     def on_add_item_clicked(self, _):
-        self.open_item_window()
+        self.open_adding_item_window()
+
+    def on_select_item_clicked(self, _):
+        window = EntityListToSelectWindow(
+            entity_type_class=self.item_type_class,
+            transient_for=self.parent_window,
+            title=self.item_type_class.__gtype_name__,
+            modal=True,
+        )
+        window.connect('entity_selected', self.on_entity_selected)
+        window.present()
 
 
 class LinkedEntityColumnView(EntityColumnView):
@@ -172,7 +185,7 @@ class LinkedEntityColumnView(EntityColumnView):
         self.linking_table = linking_table
         self.item_main = item_main
         self.item_slave = item_slave
-        super().__init__(parent_window, item_type, self.on_entity_added)
+        super().__init__(parent_window, item_type, self.on_entity_added, None, self.on_entity_added)
 
     def update_list(self):
         query = select(self.linking_table).where(getattr(self.linking_table, f'{self.item_main}_id')==self.parent_window.entity.id)
@@ -185,6 +198,15 @@ class LinkedEntityColumnView(EntityColumnView):
         dbapi.session.commit()
         self.clear()
         self.update_list()
+
+
+class SelectingEntityColumnView(EntityColumnView):
+    def __init__(self, parent_window, item_type, on_entity_selected):
+        super().__init__(parent_window, item_type, on_entity_selected=on_entity_selected)
+
+    def on_activate_item(self, column_view, position):
+        item = self.list_store.get_item(position)
+        self.on_entity_selected(item.entity_id)
 
 
 class EntityListWindow(Gtk.ApplicationWindow):
@@ -215,6 +237,38 @@ class EntityListWindow(Gtk.ApplicationWindow):
     def update_list(self):
         for entity in dbapi.session.scalars(select(self.entity_db_class)):
             self.column_view.append(entity)
+
+
+class EntityListToSelectWindow(Gtk.ApplicationWindow):
+    def __init__(self, entity_type_class, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.entity_type_class = entity_type_class
+        self.entity_db_class = getattr(db, entity_type_class.__gtype_name__)
+
+        box = Gtk.Box()
+        box.props.margin_top = 6
+        box.props.margin_bottom = 6
+        box.props.margin_start = 6
+        box.props.margin_end = 6
+        box.props.orientation = Gtk.Orientation.VERTICAL
+        self.set_child(box)
+        self.column_view = SelectingEntityColumnView(
+            self,
+            self.entity_type_class,
+            self.on_entity_selected,
+        )
+        box.append(self.column_view.box)
+        for entity in dbapi.session.scalars(select(self.entity_db_class)):
+            self.column_view.append(entity)
+
+    @GObject.Signal(arg_types=(int,))
+    def entity_selected(self, entity_id: int):
+        pass
+
+    def on_entity_selected(self, selected_id):
+        self.emit('entity_selected', selected_id)
+        self.close()
 
 
 class ItemDropDown(GObject.Object):
