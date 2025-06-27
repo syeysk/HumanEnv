@@ -210,11 +210,12 @@ class SelectingEntityColumnView(EntityColumnView):
 
 
 class EntityListWindow(Gtk.ApplicationWindow):
-    entity_type_class = None
-    entity_db_class = None
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, entity_type_class, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        self.entity_type_class = entity_type_class
+        self.entity_db_class = getattr(db, entity_type_class.__gtype_name__)
+
         box = Gtk.Box()
         box.props.margin_top = 6
         box.props.margin_bottom = 6
@@ -505,7 +506,7 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
         self.age_value.set_text(f'{age_timedelta.days // 365} лет')
 
     def on_sector_edit_clicked(self, button):
-        window = SectorListWindow(transient_for=self, title='Sector List', modal=True)
+        window = EntityListWindow(Sector, transient_for=self, title='Sector List', modal=True)
         window.present()     
 
 
@@ -571,7 +572,7 @@ class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
             builder.communities_column_view.update_list()
 
     def on_aim_edit_clicked(self, button):
-        window = TaskAimListWindow(transient_for=self, title='Task Aim List', modal=True)
+        window = EntityListWindow(TaskAim, transient_for=self, title='Task Aim List', modal=True)
         window.present()
 
 
@@ -629,7 +630,7 @@ class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
             builder.communities_column_view.update_list()
     
     def on_type_edit_clicked(self, button):
-        window = ContactTypeListWindow(transient_for=self, title='Contact Type List', modal=True)
+        window = EntityListWindow(ContactType, transient_for=self, title='Contact Type List', modal=True)
         window.present()
 
  
@@ -851,21 +852,6 @@ class Meeting(GObject.Object):
     @GObject.Property(type=str)
     def meeting_title(self):
         return self._meeting_title
-
-
-class TaskAimListWindow(EntityListWindow):
-    entity_type_class = TaskAim
-    entity_db_class = db.TaskAim
-
-
-class ContactTypeListWindow(EntityListWindow):
-    entity_type_class = ContactType
-    entity_db_class = db.ContactType
-
-
-class SectorListWindow(EntityListWindow):
-    entity_type_class = Sector
-    entity_db_class = db.Sector
 
 
 class AppWindow(Gtk.ApplicationWindow):
