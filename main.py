@@ -13,7 +13,7 @@ from db import (
     DBAdapter,
 )
 from jinja2 import Template
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import GLib, Gio, Gtk, GObject
@@ -92,19 +92,20 @@ class EntityColumnView:
         cell = list_item.get_child()
         cell._binding = None
 
-    def __init__(self, parent_window, item_type, on_entity_added=None, on_delete_clicked=None, on_entity_selected=None):
+    def __init__(self, parent_window, item_type, on_entity_added=None, on_entity_deleted=None, on_entity_selected=None):
         # Buttons
 
         self.parent_window = parent_window
         self.on_entity_added = on_entity_added
         self.on_entity_selected = on_entity_selected
+        self.on_entity_deleted = on_entity_deleted
 
         buttons_box = Gtk.Box(spacing=6)
         buttons_box.props.orientation = Gtk.Orientation.HORIZONTAL
         
-        if on_delete_clicked:
+        if on_entity_deleted:
             delete_button = Gtk.Button(label='Удалить')
-            #delete_button.connect('clicked', on_delete_clicked)
+            delete_button.connect('clicked',self.on_delete_item_clicked)
             buttons_box.append(delete_button)
 
         if on_entity_added:
@@ -145,6 +146,7 @@ class EntityColumnView:
         self.box.props.orientation = Gtk.Orientation.VERTICAL
         self.box.append(buttons_box)
         self.box.append(view)
+        self.selection = selection
 
     def append(self, db_object):
          self.list_store.append(self.item_type_class.from_db_object(db_object))
@@ -179,13 +181,17 @@ class EntityColumnView:
         window.connect('entity_selected', self.on_entity_selected)
         window.present()
 
+    def on_delete_item_clicked(self, _):
+        selected_item = self.selection.props.selected_item
+        self.on_entity_deleted(selected_item.entity_id)
+
 
 class LinkedEntityColumnView(EntityColumnView):
     def __init__(self, parent_window, item_type, linking_table, item_main, item_slave):
         self.linking_table = linking_table
         self.item_main = item_main
         self.item_slave = item_slave
-        super().__init__(parent_window, item_type, self.on_entity_added, None, self.on_entity_added)
+        super().__init__(parent_window, item_type, self.on_entity_added, self.on_entity_deleted, self.on_entity_added)
 
     def update_list(self):
         query = select(self.linking_table).where(getattr(self.linking_table, f'{self.item_main}_id')==self.parent_window.entity.id)
@@ -193,8 +199,18 @@ class LinkedEntityColumnView(EntityColumnView):
             self.append(getattr(link, self.item_slave))
 
     def on_entity_added(self, widget, linked_entity_id):
-        kwargs = {f'{self.item_main}_id': self.parent_window.entity.id, f'{self.item_slave}_id': linked_entity_id}
-        dbapi.session.add(self.linking_table(**kwargs))
+        cond_left = getattr(self.linking_table, f'{self.item_main}_id') == self.parent_window.entity.id
+        cond_right = getattr(self.linking_table, f'{self.item_slave}_id') == linked_entity_id
+        if not dbapi.session.scalar(select(self.linking_table).where(cond_left, cond_right)):
+            kwargs = {f'{self.item_main}_id': self.parent_window.entity.id, f'{self.item_slave}_id': linked_entity_id}
+            dbapi.session.add(self.linking_table(**kwargs))
+            dbapi.session.commit()
+            self.clear()
+            self.update_list()
+
+    def on_entity_deleted(self, entity_id):
+        print(entity_id, self.linking_table)
+        dbapi.session.execute(delete(self.linking_table).where(self.linking_table.id==entity_id))
         dbapi.session.commit()
         self.clear()
         self.update_list()
@@ -227,11 +243,18 @@ class EntityListWindow(Gtk.ApplicationWindow):
             self,
             self.entity_type_class,
             self.on_entity_added,
+            self.on_entity_deleted,
         )
         box.append(self.column_view.box)
         self.update_list()
 
     def on_entity_added(self, widget, _):
+        self.column_view.clear()
+        self.update_list()
+
+    def on_entity_deleted(self, entity_id):
+        dbapi.session.execute(delete(self.entity_db_class).where(self.entity_db_class.id==entity_id))
+        dbapi.session.commit()
         self.column_view.clear()
         self.update_list()
 
@@ -496,6 +519,8 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
             builder.tasks_column_view.update_list()
             builder.humans_column_view.update_list()
 
+        self.on_change_birth_date(None)
+
     def on_change_birth_date(self, spin_button):
         birth_date = date(
             self.birth_year_entry.get_value_as_int() or 1,
@@ -564,7 +589,7 @@ class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
         for task_aim in dbapi.session.scalars(select(db.TaskAim)):
             builder.aim_entry.append(item_id=task_aim.id, item_name=task_aim.name)
 
-        builder.aim_entry.props.selected = self.entity.aim.id if self.entity else 0
+        builder.aim_entry.props.selected = (self.entity.aim.id - 1) if self.entity else 0
         builder.aim_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'aim_id')
         builder.aim_edit_button.connect('clicked', self.on_aim_edit_clicked)
         if self.entity:
@@ -636,19 +661,21 @@ class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
  
 class Human(GObject.Object):
     __gtype_name__  = 'Human'
-    columns = (('ID', 'entity_id', FIELD_ID_SIZE), ('ФИО', 'human_name', None))
+    columns = (('ID', 'entity_id', FIELD_ID_SIZE), ('Фамилия', 'human_family_name', 150), ('Имя', 'human_first_name', 150))
     window = HumanWindow
     
-    def __init__(self, entity_id, human_name):
+    def __init__(self, entity_id, human_first_name, human_family_name):
         super().__init__()
         self._entity_id = entity_id
-        self._human_name = human_name
+        self._human_first_name = human_first_name
+        self._human_family_name = human_family_name
 
     @classmethod
     def from_db_object(cls, db_object):
         return cls(
             entity_id=db_object.id,
-            human_name=db_object.first_name,
+            human_first_name=db_object.first_name,
+            human_family_name=db_object.family_name,
         )
 
     @GObject.Property(type=int)
@@ -656,8 +683,12 @@ class Human(GObject.Object):
         return self._entity_id
 
     @GObject.Property(type=str)
-    def human_name(self):
-        return self._human_name
+    def human_first_name(self):
+        return self._human_first_name
+
+    @GObject.Property(type=str)
+    def human_family_name(self):
+        return self._human_family_name
 
 
 class Contact(GObject.Object):
@@ -778,7 +809,7 @@ class Community(GObject.Object):
 
 class Task(GObject.Object):
     __gtype_name__  = 'Task'
-    columns =  (('ID', 'entity_id', FIELD_ID_SIZE), ('Название', 'task_title', None))
+    columns =  (('ID', 'entity_id', FIELD_ID_SIZE), ('Название', 'task_title', 400))
     window = TaskWindow
     
     @classmethod
@@ -830,7 +861,7 @@ class TaskAim(GObject.Object):
 
 class Meeting(GObject.Object):
     __gtype_name__  = 'Meeting'
-    columns = (('ID', 'entity_id', FIELD_ID_SIZE), ('Название', 'meeting_title', None))
+    columns = (('ID', 'entity_id', FIELD_ID_SIZE), ('Название', 'meeting_title', 400))
     window = MeetingWindow
 
     def __init__(self, entity_id, meeting_title):
