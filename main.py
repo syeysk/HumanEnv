@@ -694,7 +694,7 @@ class Human(GObject.Object):
 
 class Contact(GObject.Object):
     __gtype_name__  = 'Contact'
-    columns = (('ID', 'entity_id', FIELD_ID_SIZE), ('Тип', 'contact_type', None), ('Значение', 'contact_value', None), ('Статус', 'contact_status', 150))
+    columns = (('ID', 'entity_id', FIELD_ID_SIZE), ('Тип', 'contact_type', 80), ('Значение', 'contact_value', 150), ('Статус', 'contact_status', 150))
     window = ContactWindow
 
     def __init__(self, entity_id, contact_type, contact_value, contact_status):
@@ -892,61 +892,39 @@ class AppWindow(Gtk.ApplicationWindow):
 
         self.set_default_size(600, 400)
         self.props.show_menubar = True
+        
+        builder = WindowBuilder(BASE_DIR / 'app.xml', {})
+        self.set_child(builder.box)
 
         #action_show_contacts = Gio.SimpleAction.new('show_contacts', None)
         #action_show_contacts.connect('activate', self.on_show_entities, Contact, db.Contact)
         #self.add_action(action_show_contacts)
 
-        self.box = Gtk.Box(spacing=6)
-        self.box.props.orientation = Gtk.Orientation.HORIZONTAL
-        self.box.props.margin_top = 6
-        self.box.props.margin_start = 6
-        left_box = Gtk.Box(spacing=6)
-        left_box.props.orientation = Gtk.Orientation.VERTICAL
+        builder.box.props.orientation = Gtk.Orientation.HORIZONTAL
+        builder.left_box.props.orientation = Gtk.Orientation.VERTICAL
+        builder.main_box.props.orientation = Gtk.Orientation.VERTICAL
 
-        button_show_human = Gtk.Button(label='Human')
-        button_show_human.connect('clicked', self.on_show_entities, Human, db.Human)
-        left_box.append(button_show_human)
+        builder.button_show_human.connect('clicked', self.on_show_entities, Human, db.Human)
+        builder.button_show_community.connect('clicked', self.on_show_entities, Community, db.Community)
+        builder.button_show_task.connect('clicked', self.on_show_entities, Task, db.Task)
+        builder.button_show_contact.connect('clicked', self.on_show_entities, Contact, db.Contact)
+        builder.button_show_meeting.connect('clicked', self.on_show_entities, Meeting, db.Meeting)
 
-        button_show_community = Gtk.Button(label='Community')
-        button_show_community.connect('clicked', self.on_show_entities, Community, db.Community)
-        left_box.append(button_show_community)
-
-        button_show_task = Gtk.Button(label='Task')
-        button_show_task.connect('clicked', self.on_show_entities, Task, db.Task)
-        left_box.append(button_show_task)
-
-        button_show_contact = Gtk.Button(label='Contact')
-        button_show_contact.connect('clicked', self.on_show_entities, Contact, db.Contact)
-        left_box.append(button_show_contact)
-
-        button_show_meeting = Gtk.Button(label='Meeting')
-        button_show_meeting.connect('clicked', self.on_show_entities, Meeting, db.Meeting)
-        left_box.append(button_show_meeting)
-
-        self.box.append(left_box)
-        self.set_child(self.box)
-
-        self.main_box = None
+        self.builder = builder
+        self.entities_column_view = None
         self.on_show_entities(None, Human, db.Human)
 
-    def clear_and_init_empty_view(self):
-        if self.main_box:
-            self.box.remove(self.main_box)
-
-        self.main_box = Gtk.Box(spacing=6)
-        self.main_box.props.orientation = Gtk.Orientation.VERTICAL
-        self.box.append(self.main_box)
-
     def on_show_entities(self, action, entity_class, entity_db_class):
-        self.clear_and_init_empty_view()
+        if self.entities_column_view:
+            self.builder.main_box.remove(self.entities_column_view.box)
+
         self.entities_column_view = EntityColumnView(
             self,
             entity_class,
             lambda widget, _: self.on_entity_added(widget, _, entity_db_class),
         )
         self.update_entity_list(entity_db_class)
-        self.main_box.append(self.entities_column_view.box)
+        self.builder.main_box.append(self.entities_column_view.box)
 
     def on_show_map(self, action, value):
         pass

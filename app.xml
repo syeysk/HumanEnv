@@ -1,0 +1,12 @@
+<?xml version="1.1" encoding="UTF-8" ?>
+<Box id="box" spacing="6" margin_top="6" margin_start="6" margin_end="6" margin_bottom="6">
+    <Box id="left_box" spacing="6" margin_top="6" margin_start="6" margin_end="6" margin_bottom="6">
+	    <Button id="button_show_human">Human</Button>
+	    <Button id="button_show_community">Community</Button>
+	    <Button id="button_show_task">Task</Button>
+	    <Button id="button_show_contact">Contact</Button>
+	    <Button id="button_show_meeting">Meeting</Button>
+    </Box>
+	<Box id="main_box">
+	</Box>
+</Box>
