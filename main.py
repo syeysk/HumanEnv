@@ -15,8 +15,9 @@ from db import (
 from jinja2 import Template
 from sqlalchemy import select, delete
 
-gi.require_version("Gtk", "4.0")
+gi.require_version('Gtk', '4.0')
 from gi.repository import GLib, Gio, Gtk, GObject
+from circle_map import CircleMapWindow
 
 BASE_DIR = Path(__file__).resolve().parent
 MENU_MAIN_PATH = BASE_DIR / 'menu_main.xml'
@@ -896,9 +897,9 @@ class AppWindow(Gtk.ApplicationWindow):
         builder = WindowBuilder(BASE_DIR / 'app.xml', {})
         self.set_child(builder.box)
 
-        #action_show_contacts = Gio.SimpleAction.new('show_contacts', None)
-        #action_show_contacts.connect('activate', self.on_show_entities, Contact, db.Contact)
-        #self.add_action(action_show_contacts)
+        action_show_map = Gio.SimpleAction.new('show_map', None)
+        action_show_map.connect('activate', self.on_show_map)
+        self.add_action(action_show_map)
 
         builder.box.props.orientation = Gtk.Orientation.HORIZONTAL
         builder.left_box.props.orientation = Gtk.Orientation.VERTICAL
@@ -910,13 +911,13 @@ class AppWindow(Gtk.ApplicationWindow):
         builder.button_show_contact.connect('clicked', self.on_show_entities, Contact, db.Contact)
         builder.button_show_meeting.connect('clicked', self.on_show_entities, Meeting, db.Meeting)
 
-        self.builder = builder
+        self.main_box = builder.main_box
         self.entities_column_view = None
         self.on_show_entities(None, Human, db.Human)
 
     def on_show_entities(self, action, entity_class, entity_db_class):
         if self.entities_column_view:
-            self.builder.main_box.remove(self.entities_column_view.box)
+            self.main_box.remove(self.entities_column_view.box)
 
         self.entities_column_view = EntityColumnView(
             self,
@@ -924,10 +925,11 @@ class AppWindow(Gtk.ApplicationWindow):
             lambda widget, _: self.on_entity_added(widget, _, entity_db_class),
         )
         self.update_entity_list(entity_db_class)
-        self.builder.main_box.append(self.entities_column_view.box)
+        self.main_box.append(self.entities_column_view.box)
 
     def on_show_map(self, action, value):
-        pass
+        window = CircleMapWindow(dbapi.session, transient_for=self, title='Circle Map', modal=True)
+        window.present()
 
     def on_show_aims(self, action, value):
         pass

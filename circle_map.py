@@ -1,0 +1,72 @@
+import math
+
+from gi.repository import Gtk
+from sqlalchemy import select, func
+
+import db
+
+
+class CircleWidget(Gtk.DrawingArea):
+    def __init__(self, session):
+        Gtk.DrawingArea.__init__(self)
+        self.set_draw_func(self.draw)
+        self.props.content_height = 800
+        self.props.content_width = 800
+        self.session = session
+
+    # cario.Context: https://pycairo.readthedocs.io/en/latest/reference/context.html
+    def draw(self, widget, context, window_w, window_h):
+        context.set_source_rgb(0.7, 0.7, 0.7)
+        context.set_line_width(1)
+        
+        deg = math.pi / 180
+        padding = 10
+        circle_center_x = window_w / 2
+        circle_center_y = window_h / 2
+        radius = min(window_w, window_h) / 2 - padding
+
+        # draw circles
+
+        radius_partial = radius / len(db.CIRCLES)
+        for circle_index, (circle_id, circle_name) in enumerate(db.CIRCLES.items(), 1):
+            context.new_sub_path()
+            context.arc(circle_center_x, circle_center_y, radius_partial * circle_index, 0, 360 * deg)
+            context.stroke()
+
+        # draw sectors (rotate a point around other one: https://foxford.ru/wiki/informatika/povorot-tochki)
+        
+        count_sectors = 7
+        '''degree_partial = 360 / count_sectors
+        end_x = circle_center_x
+        end_y = padding
+        start_x = circle_center_x
+        start_y = circle_center_y
+        diff_x = end_x - start_x
+        diff_y = end_y - start_y
+        for index_sector in range(count_sectors):
+            rotate_degree = degree_partial * index_sector * deg
+            context.new_sub_path()
+            context.move_to(circle_center_x, circle_center_y)
+            x = start_x + diff_x * math.cos(rotate_degree) - diff_y * math.sin(rotate_degree)
+            y = start_y + diff_x * math.sin(rotate_degree) + diff_y * math.cos(rotate_degree)
+            context.line_to(x, y)
+            context.stroke()'''
+        degree_partial = 360 / self.session.scalar(select(func.count('*')).select_from(db.Sector))
+        diff_y = padding - circle_center_y
+        for index_sector, sector in enumerate(self.session.scalars(select(db.Sector))):
+            rotate_degree = degree_partial * index_sector * deg
+            x = circle_center_x - diff_y * math.sin(rotate_degree)
+            y = circle_center_y + diff_y * math.cos(rotate_degree)
+            context.new_sub_path()
+            context.move_to(circle_center_x, circle_center_y)
+            context.line_to(x, y)
+            context.stroke()
+        
+
+
+class CircleMapWindow(Gtk.ApplicationWindow):
+    def __init__(self, session, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        circle_widget = CircleWidget(session)
+        self.set_child(circle_widget)
