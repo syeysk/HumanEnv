@@ -35,22 +35,6 @@ class CircleWidget(Gtk.DrawingArea):
 
         # draw sectors (rotate a point around other one: https://foxford.ru/wiki/informatika/povorot-tochki)
         
-        count_sectors = 7
-        '''degree_partial = 360 / count_sectors
-        end_x = circle_center_x
-        end_y = padding
-        start_x = circle_center_x
-        start_y = circle_center_y
-        diff_x = end_x - start_x
-        diff_y = end_y - start_y
-        for index_sector in range(count_sectors):
-            rotate_degree = degree_partial * index_sector * deg
-            context.new_sub_path()
-            context.move_to(circle_center_x, circle_center_y)
-            x = start_x + diff_x * math.cos(rotate_degree) - diff_y * math.sin(rotate_degree)
-            y = start_y + diff_x * math.sin(rotate_degree) + diff_y * math.cos(rotate_degree)
-            context.line_to(x, y)
-            context.stroke()'''
         degree_partial = 360 / self.session.scalar(select(func.count('*')).select_from(db.Sector))
         diff_y = padding - circle_center_y
         for index_sector, sector in enumerate(self.session.scalars(select(db.Sector))):
