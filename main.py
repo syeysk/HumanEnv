@@ -44,6 +44,9 @@ class EntityEditWindow(Gtk.ApplicationWindow):
             query = select(self.entity_class).where(self.entity_class.id == entity_id)
             self.entity = session.scalars(query).first()
 
+        self.builder = WindowBuilder(BASE_DIR / f'{self.entity_name}.xml', {'entity': self.entity}, parent_window=self)
+        self.set_child(self.builder.root_widget)
+
     @GObject.Signal(arg_types=(int,))
     def entity_added(self, entity_id: int):
         pass
@@ -74,7 +77,7 @@ class EntityEditWindow(Gtk.ApplicationWindow):
             self.entity = self.entity_class(**fields)
             session.add(self.entity)
             session.commit()
-            self.id_value.set_text(str(self.entity.id))            
+            self.builder.id_value.set_text(str(self.entity.id))            
             self.emit('entity_added', self.entity.id)
 
 
@@ -377,6 +380,7 @@ class WindowBuilder:
 
         root = ET.fromstring(templated_xml)
         self.parents = []
+        self.root_widget = None
         self._go(root)
         
     def _go(self, node):
@@ -447,6 +451,9 @@ class WindowBuilder:
                 self.parents.append((gtkelem, tag, {'x': 0, 'y': -1}))
             elif tag == 'Box':
                 self.parents.append((gtkelem, tag, None))
+            
+            if not self.root_widget:
+                self.root_widget = gtkelem
 
         for child in node:
             self._go(child)
@@ -462,9 +469,7 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        builder = WindowBuilder(BASE_DIR / 'human.xml', {'entity': self.entity}, parent_window=self)
-        self.set_child(builder.main_box)
-        self.id_value = builder.id_value
+        builder = self.builder
 
         # Top Left Controllers
 
@@ -559,10 +564,7 @@ class ContactTypeWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
     def __init__(self, *args,  **kwargs):
         super().__init__(*args, **kwargs)
-        builder = WindowBuilder(BASE_DIR / 'contact_type.xml', {'entity': self.entity})
-        self.set_child(builder.grid)
-        self.id_value = builder.id_value
-        builder.name_entry.connect('changed', self.on_change_any_data, 'name')
+        self.builder.name_entry.connect('changed', self.on_change_any_data, 'name')
 
 
 class SectorWindow(EntityEditWindow, Gtk.ApplicationWindow):
@@ -571,10 +573,7 @@ class SectorWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        builder = WindowBuilder(BASE_DIR / 'sector.xml', {'entity': self.entity})
-        self.set_child(builder.grid)
-        self.id_value = builder.id_value
-        builder.name_entry.connect('changed', self.on_change_any_data, 'name')
+        self.builder.name_entry.connect('changed', self.on_change_any_data, 'name')
 
 
 class CommunityWindow(EntityEditWindow, Gtk.ApplicationWindow):
@@ -583,10 +582,7 @@ class CommunityWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        builder = WindowBuilder(BASE_DIR / 'community.xml', {'entity': self.entity}, parent_window=self)
-        self.set_child(builder.grid)
-        self.id_value = builder.id_value
-        builder.name_entry.connect('changed', self.on_change_any_data, 'name')
+        self.builder.name_entry.connect('changed', self.on_change_any_data, 'name')
 
 
 class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
@@ -595,17 +591,14 @@ class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        builder = WindowBuilder(BASE_DIR / 'task.xml', {'entity': self.entity}, parent_window=self)
-        self.set_child(builder.grid)
-        self.id_value = builder.id_value
-        builder.title_entry.connect('changed', self.on_change_any_data, 'title')
+        self.builder.title_entry.connect('changed', self.on_change_any_data, 'title')
 
         for task_aim in session.scalars(select(db.TaskAim)):
-            builder.aim_entry.append(item_id=task_aim.id, item_name=task_aim.name)
+            self.builder.aim_entry.append(item_id=task_aim.id, item_name=task_aim.name)
 
-        builder.aim_entry.props.selected = (self.entity.aim.id - 1) if self.entity else 0
-        builder.aim_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'aim_id')
-        builder.aim_edit_button.connect('clicked', self.on_aim_edit_clicked)
+        self.builder.aim_entry.props.selected = (self.entity.aim.id - 1) if self.entity else 0
+        self.builder.aim_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'aim_id')
+        self.builder.aim_edit_button.connect('clicked', self.on_aim_edit_clicked)
 
     def on_aim_edit_clicked(self, button):
         window = EntityListWindow(TaskAim, transient_for=self, title='Task Aim List', modal=True)
@@ -618,10 +611,7 @@ class TaskAimWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
     def __init__(self, *args,  **kwargs):
         super().__init__(*args, **kwargs)
-        builder = WindowBuilder(BASE_DIR / 'task_aim.xml', {'entity': self.entity})
-        self.set_child(builder.grid)
-        self.id_value = builder.id_value
-        builder.name_entry.connect('changed', self.on_change_any_data, 'name')
+        self.builder.name_entry.connect('changed', self.on_change_any_data, 'name')
 
 
 class MeetingWindow(EntityEditWindow, Gtk.ApplicationWindow):
@@ -630,11 +620,8 @@ class MeetingWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
     def __init__(self, *args,  **kwargs):
         super().__init__(*args, **kwargs)
-        builder = WindowBuilder(BASE_DIR / 'meeting.xml', {'entity': self.entity}, parent_window=self)
-        self.set_child(builder.grid)
-        self.id_value = builder.id_value
-        builder.title_entry.connect('changed', self.on_change_any_data, 'title')
-        #builder.description_entry.connect('changed', self.on_change_any_data, 'description')
+        self.builder.title_entry.connect('changed', self.on_change_any_data, 'title')
+        #self.builder.description_entry.connect('changed', self.on_change_any_data, 'description')
 
 
 class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
@@ -644,21 +631,18 @@ class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.set_default_size(400, 600)
-        builder = WindowBuilder(BASE_DIR / 'contact.xml', {'entity': self.entity}, parent_window=self)
-        self.set_child(builder.grid)
-        self.id_value = builder.id_value
-        builder.value_entry.connect('changed', self.on_change_any_data, 'value')
+        self.builder.value_entry.connect('changed', self.on_change_any_data, 'value')
         for contact_type in session.scalars(select(db.ContactType)):
-            builder.type_entry.append(item_id=contact_type.id, item_name=contact_type.name)
+            self.builder.type_entry.append(item_id=contact_type.id, item_name=contact_type.name)
 
-        builder.type_entry.props.selected = (self.entity.type_id - 1) if self.entity else 0
-        builder.type_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'type_id')
-        builder.type_edit_button.connect('clicked', self.on_type_edit_clicked)
+        self.builder.type_entry.props.selected = (self.entity.type_id - 1) if self.entity else 0
+        self.builder.type_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'type_id')
+        self.builder.type_edit_button.connect('clicked', self.on_type_edit_clicked)
         for item_id, item_name in CONTACT_STATUSES.items():
-            builder.status_entry.append(item_id=item_id, item_name=item_name)
+            self.builder.status_entry.append(item_id=item_id, item_name=item_name)
 
-        builder.status_entry.props.selected = (self.entity.status - 1) if self.entity else 0
-        builder.status_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'status')
+        self.builder.status_entry.props.selected = (self.entity.status - 1) if self.entity else 0
+        self.builder.status_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'status')
     
     def on_type_edit_clicked(self, button):
         window = EntityListWindow(ContactType, transient_for=self, title='Contact Type List', modal=True)
@@ -899,7 +883,7 @@ class AppWindow(Gtk.ApplicationWindow):
         self.props.show_menubar = True
         
         builder = WindowBuilder(BASE_DIR / 'app.xml', {})
-        self.set_child(builder.box)
+        self.set_child(builder.root_widget)
 
         action_show_map = Gio.SimpleAction.new('show_map', None)
         action_show_map.connect('activate', self.on_show_map)

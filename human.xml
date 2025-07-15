@@ -1,5 +1,5 @@
 <?xml version="1.1" encoding="UTF-8" ?>
-<Box id="main_box" spacing="6" margin_top="6" margin_start="6" margin_end="6" margin_bottom="6">
+<Box spacing="6" margin_top="6" margin_start="6" margin_end="6" margin_bottom="6">
     <Box id="top_box" spacing="6" orientation="HORIZONTAL">
         <Grid id="top_left_box" column_spacing="6" row_spacing="6">
 		    <Row>
