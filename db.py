@@ -1,7 +1,7 @@
 import datetime
 from typing import List, Optional
-from sqlalchemy import ForeignKey, String, select, insert, create_engine, update, DateTime
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
+from sqlalchemy import ForeignKey, String, select, insert, update, DateTime
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 CIRCLE_DEVELOP = 1
@@ -215,18 +215,7 @@ class LinkHumanHuman(Base):
     relation: Mapped['HumanRelationType'] = relationship()
 
 
-class DBAdapter:
-    def __init__(self, dbpath):
-        db_path_with_protocol = f'sqlite:///{dbpath}'
-        self.engine = create_engine(db_path_with_protocol, echo=True)
-        #self.engine = create_engine('sqlite://', echo=True)
-        Base.metadata.create_all(self.engine)
-
-    def __enter__(self):
-        session_obj = Session(self.engine)
-        self.session = session_obj.__enter__()
-
-        '''
+'''
         contact_types = (
             (1, 'Не указано'),
             (2, 'Телефон'),
@@ -249,8 +238,3 @@ class DBAdapter:
 
         self.session.commit()
         '''
-        return self
-
-    def __exit__(self, type, value, traceback):
-         self.session.__exit__(type, value, traceback)
-

@@ -10,10 +10,11 @@ from db import (
     CIRCLES,
     SEXES,
     CONTACT_STATUSES,
-    DBAdapter,
+    Base,
 )
 from jinja2 import Template
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, create_engine
+from sqlalchemy.orm import Session
 
 gi.require_version('Gtk', '4.0')
 from gi.repository import GLib, Gio, Gtk, GObject
@@ -30,7 +31,7 @@ DB_NAME_PATH = DB_DIR / 'name.txt'
 DB_PHOTOS_DIR = DB_DIR / 'photos'
 
 FIELD_ID_SIZE = 30
-dbapi = None
+session = None
 
 class EntityEditWindow(Gtk.ApplicationWindow):
     entity_name = None
@@ -41,7 +42,7 @@ class EntityEditWindow(Gtk.ApplicationWindow):
         self.entity = None
         if entity_id:
             query = select(self.entity_class).where(self.entity_class.id == entity_id)
-            self.entity = dbapi.session.scalars(query).first()
+            self.entity = session.scalars(query).first()
 
     @GObject.Signal(arg_types=(int,))
     def entity_added(self, entity_id: int):
@@ -67,12 +68,12 @@ class EntityEditWindow(Gtk.ApplicationWindow):
         fields = {name: value}
         if self.entity:
             setattr(self.entity, name, value)
-            dbapi.session.commit()
+            session.commit()
             self.emit('entity_updated', self.entity.id, name, value)
         else:
             self.entity = self.entity_class(**fields)
-            dbapi.session.add(self.entity)
-            dbapi.session.commit()
+            session.add(self.entity)
+            session.commit()
             self.id_value.set_text(str(self.entity.id))            
             self.emit('entity_added', self.entity.id)
 
@@ -202,24 +203,24 @@ class LinkedEntityColumnView(EntityColumnView):
 
     def update_list(self):
         query = select(self.linking_table).where(getattr(self.linking_table, f'{self.item_main}_id')==self.parent_window.entity.id)
-        for link in dbapi.session.scalars(query):
+        for link in session.scalars(query):
             self.append(getattr(link, self.item_slave))
 
     def on_entity_added(self, widget, linked_entity_id):
         cond_left = getattr(self.linking_table, f'{self.item_main}_id') == self.parent_window.entity.id
         cond_right = getattr(self.linking_table, f'{self.item_slave}_id') == linked_entity_id
-        if not dbapi.session.scalar(select(self.linking_table).where(cond_left, cond_right)):
+        if not session.scalar(select(self.linking_table).where(cond_left, cond_right)):
             kwargs = {f'{self.item_main}_id': self.parent_window.entity.id, f'{self.item_slave}_id': linked_entity_id}
-            dbapi.session.add(self.linking_table(**kwargs))
-            dbapi.session.commit()
+            session.add(self.linking_table(**kwargs))
+            session.commit()
             self.clear()
             self.update_list()
 
     def on_entity_deleted(self, entity_id):
         cond_left = getattr(self.linking_table, f'{self.item_main}_id') == self.parent_window.entity.id
         cond_right = getattr(self.linking_table, f'{self.item_slave}_id') == entity_id
-        dbapi.session.execute(delete(self.linking_table).where(cond_left, cond_right))
-        dbapi.session.commit()
+        session.execute(delete(self.linking_table).where(cond_left, cond_right))
+        session.commit()
         self.clear()
         self.update_list()
 
@@ -261,13 +262,13 @@ class EntityListWindow(Gtk.ApplicationWindow):
         self.update_list()
 
     def on_entity_deleted(self, entity_id):
-        dbapi.session.execute(delete(self.entity_db_class).where(self.entity_db_class.id==entity_id))
-        dbapi.session.commit()
+        session.execute(delete(self.entity_db_class).where(self.entity_db_class.id==entity_id))
+        session.commit()
         self.column_view.clear()
         self.update_list()
 
     def update_list(self):
-        for entity in dbapi.session.scalars(select(self.entity_db_class)):
+        for entity in session.scalars(select(self.entity_db_class)):
             self.column_view.append(entity)
 
 
@@ -291,7 +292,7 @@ class EntityListToSelectWindow(Gtk.ApplicationWindow):
             self.on_entity_selected,
         )
         box.append(self.column_view.box)
-        for entity in dbapi.session.scalars(select(self.entity_db_class)):
+        for entity in session.scalars(select(self.entity_db_class)):
             self.column_view.append(entity)
 
     @GObject.Signal(arg_types=(int,))
@@ -499,7 +500,7 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
         builder.circle_entry.props.selected = (self.entity.circle - 1) if self.entity else 0
         builder.circle_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'circle')
 
-        for sector in dbapi.session.scalars(select(db.Sector)):
+        for sector in session.scalars(select(db.Sector)):
             builder.sector_entry.append(item_id=sector.id, item_name=sector.name)
 
         builder.sector_entry.props.selected = (self.entity.sector_id - 1) if self.entity else 0
@@ -594,7 +595,7 @@ class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
         self.id_value = builder.id_value
         builder.title_entry.connect('changed', self.on_change_any_data, 'title')
 
-        for task_aim in dbapi.session.scalars(select(db.TaskAim)):
+        for task_aim in session.scalars(select(db.TaskAim)):
             builder.aim_entry.append(item_id=task_aim.id, item_name=task_aim.name)
 
         builder.aim_entry.props.selected = (self.entity.aim.id - 1) if self.entity else 0
@@ -647,7 +648,7 @@ class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
         self.set_child(builder.grid)
         self.id_value = builder.id_value
         builder.value_entry.connect('changed', self.on_change_any_data, 'value')
-        for contact_type in dbapi.session.scalars(select(db.ContactType)):
+        for contact_type in session.scalars(select(db.ContactType)):
             builder.type_entry.append(item_id=contact_type.id, item_name=contact_type.name)
 
         builder.type_entry.props.selected = (self.entity.type_id - 1) if self.entity else 0
@@ -934,7 +935,7 @@ class AppWindow(Gtk.ApplicationWindow):
         self.main_box.append(self.entities_column_view.box)
 
     def on_show_map(self, action, value):
-        window = CircleMapWindow(dbapi.session, transient_for=self, title='Circle Map', modal=True)
+        window = CircleMapWindow(session, transient_for=self, title='Circle Map', modal=True)
         window.present()
 
     def on_show_aims(self, action, value):
@@ -951,7 +952,7 @@ class AppWindow(Gtk.ApplicationWindow):
         self.update_entity_list(entity_db_class)
 
     def update_entity_list(self, entity_db_class):
-        for entity in dbapi.session.scalars(select(entity_db_class)):
+        for entity in session.scalars(select(entity_db_class)):
             self.entities_column_view.append(entity)
 
 
@@ -972,8 +973,11 @@ class MyApplication(Gtk.Application):
         window = AppWindow(application=self, title='Human Environment')
         window.present()
 
-
-with DBAdapter(DB_PATH) as dbapi:
+db_path_with_protocol = f'sqlite:///{DB_PATH}'
+engine = create_engine(db_path_with_protocol, echo=True)
+#engine = create_engine('sqlite://', echo=True)
+Base.metadata.create_all(engine)
+with Session(engine) as session:
     app = MyApplication()
     exit_status = app.run(sys.argv)
 
