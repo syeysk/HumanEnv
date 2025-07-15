@@ -463,7 +463,7 @@ class WindowBuilder:
                 self.parents.pop(-1)
 
 
-class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
+class HumanWindow(EntityEditWindow):
     entity_name = 'human'
     entity_class = db.Human
 
@@ -558,7 +558,7 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
         window.present()     
 
 
-class ContactTypeWindow(EntityEditWindow, Gtk.ApplicationWindow):
+class ContactTypeWindow(EntityEditWindow):
     entity_name = 'contact_type'
     entity_class = db.ContactType
 
@@ -567,7 +567,7 @@ class ContactTypeWindow(EntityEditWindow, Gtk.ApplicationWindow):
         self.builder.name_entry.connect('changed', self.on_change_any_data, 'name')
 
 
-class SectorWindow(EntityEditWindow, Gtk.ApplicationWindow):
+class SectorWindow(EntityEditWindow):
     entity_name = 'sector'
     entity_class = db.Sector
 
@@ -576,7 +576,7 @@ class SectorWindow(EntityEditWindow, Gtk.ApplicationWindow):
         self.builder.name_entry.connect('changed', self.on_change_any_data, 'name')
 
 
-class CommunityWindow(EntityEditWindow, Gtk.ApplicationWindow):
+class CommunityWindow(EntityEditWindow):
     entity_name = 'community'
     entity_class = db.Community
 
@@ -585,7 +585,7 @@ class CommunityWindow(EntityEditWindow, Gtk.ApplicationWindow):
         self.builder.name_entry.connect('changed', self.on_change_any_data, 'name')
 
 
-class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
+class TaskWindow(EntityEditWindow):
     entity_name = 'task'
     entity_class = db.Task
 
@@ -605,7 +605,7 @@ class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
         window.present()
 
 
-class TaskAimWindow(EntityEditWindow, Gtk.ApplicationWindow):
+class TaskAimWindow(EntityEditWindow):
     entity_name = 'task_aim'
     entity_class = db.TaskAim
 
@@ -614,7 +614,7 @@ class TaskAimWindow(EntityEditWindow, Gtk.ApplicationWindow):
         self.builder.name_entry.connect('changed', self.on_change_any_data, 'name')
 
 
-class MeetingWindow(EntityEditWindow, Gtk.ApplicationWindow):
+class MeetingWindow(EntityEditWindow):
     entity_name = 'meeting'
     entity_class = db.Meeting
 
@@ -624,7 +624,7 @@ class MeetingWindow(EntityEditWindow, Gtk.ApplicationWindow):
         #self.builder.description_entry.connect('changed', self.on_change_any_data, 'description')
 
 
-class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
+class ContactWindow(EntityEditWindow):
     entity_name = 'contact'
     entity_class = db.Contact
 
