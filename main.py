@@ -21,10 +21,16 @@ from circle_map import CircleMapWindow
 
 BASE_DIR = Path(__file__).resolve().parent
 MENU_MAIN_PATH = BASE_DIR / 'menu_main.xml'
-DEFAULT_DB_PATH = BASE_DIR / 'default.db'
+DBS_DIR = BASE_DIR / 'dbs'
+
+DB_UUID = '8eafafd12f1a4bf4b8d4cfe5ae3b39e8'
+DB_DIR = DBS_DIR / DB_UUID
+DB_PATH = DB_DIR / 'sqlite3.db'
+DB_NAME_PATH = DB_DIR / 'name.txt'
+DB_PHOTOS_DIR = DB_DIR / 'photos'
+
 FIELD_ID_SIZE = 30
 dbapi = None
-
 
 class EntityEditWindow(Gtk.ApplicationWindow):
     entity_name = None
@@ -967,7 +973,7 @@ class MyApplication(Gtk.Application):
         window.present()
 
 
-with DBAdapter(DEFAULT_DB_PATH) as dbapi:
+with DBAdapter(DB_PATH) as dbapi:
     app = MyApplication()
     exit_status = app.run(sys.argv)
 
