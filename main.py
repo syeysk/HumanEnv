@@ -13,7 +13,7 @@ from db import (
     Base,
 )
 from jinja2 import Template
-from sqlalchemy import select, delete, create_engine
+from sqlalchemy import select, delete, create_engine, or_
 from sqlalchemy.orm import Session
 
 gi.require_version('Gtk', '4.0')
@@ -195,16 +195,31 @@ class EntityColumnView:
 
 
 class LinkedEntityColumnView(EntityColumnView):
-    def __init__(self, parent_window, item_type, linking_table, item_main, item_slave):
+    def __init__(self, parent_window, item_type, linking_table, item_main, item_slave, same=False):
         self.linking_table = linking_table
         self.item_main = item_main
         self.item_slave = item_slave
+        self.same = same
         super().__init__(parent_window, item_type, self.on_entity_added, self.on_entity_deleted, self.on_entity_added)
+        if self.parent_window.entity:
+            self.update_list()
 
     def update_list(self):
-        query = select(self.linking_table).where(getattr(self.linking_table, f'{self.item_main}_id')==self.parent_window.entity.id)
+        if self.same:
+            condition = or_(
+                getattr(self.linking_table, f'{self.item_main}_id')==self.parent_window.entity.id,
+                getattr(self.linking_table, f'{self.item_slave}_id')==self.parent_window.entity.id,
+            )
+        else:
+            condition = getattr(self.linking_table, f'{self.item_main}_id')==self.parent_window.entity.id
+
+        query = select(self.linking_table).where(condition)
         for link in session.scalars(query):
-            self.append(getattr(link, self.item_slave))
+            entity = getattr(link, self.item_slave)
+            if self.same and entity.id == self.parent_window.entity.id:
+                entity = getattr(link, self.item_main)
+
+            self.append(entity)
 
     def on_entity_added(self, widget, linked_entity_id):
         cond_left = getattr(self.linking_table, f'{self.item_main}_id') == self.parent_window.entity.id
@@ -392,8 +407,13 @@ class WindowBuilder:
                 kwargs['linking_table'] = getattr(db, node.attrib.pop('linking_table'))
                 kwargs['item_main'] = node.attrib.pop('item_main')
                 kwargs['item_slave'] = node.attrib.pop('item_slave')
+                if 'same' in node.attrib:
+                    kwargs['same'] = True
+                    node.attrib.pop('same')
             elif tag == 'Picture':
                 kwargs['filename'] = str(BASE_DIR / node.attrib.pop('filename'))
+            elif tag == 'Box':
+                kwargs['orientation'] = getattr(Gtk.Orientation, node.attrib.pop('orientation', 'VERTICAL'))
             
             colspan = int(node.attrib.pop('colspan', '1'))
 
@@ -445,10 +465,6 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
         builder = WindowBuilder(BASE_DIR / 'human.xml', {'entity': self.entity}, parent_window=self)
         self.set_child(builder.main_box)
         self.id_value = builder.id_value
-
-        builder.main_box.props.orientation = Gtk.Orientation.VERTICAL        
-        builder.top_box.props.orientation = Gtk.Orientation.HORIZONTAL
-        builder.bottom_box.props.orientation = Gtk.Orientation.VERTICAL
 
         # Top Left Controllers
 
@@ -521,13 +537,6 @@ class HumanWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
         # Bottom Controllers
 
-        if self.entity:
-            builder.contacts_column_view.update_list()
-            builder.communities_column_view.update_list()
-            builder.meetings_column_view.update_list()
-            builder.tasks_column_view.update_list()
-            builder.humans_column_view.update_list()
-
         self.on_change_birth_date(None)
 
     def on_change_birth_date(self, spin_button):
@@ -578,10 +587,6 @@ class CommunityWindow(EntityEditWindow, Gtk.ApplicationWindow):
         self.set_child(builder.grid)
         self.id_value = builder.id_value
         builder.name_entry.connect('changed', self.on_change_any_data, 'name')
-        if self.entity:
-            builder.humans_column_view.update_list()
-            builder.contacts_column_view.update_list()
-            builder.tasks_column_view.update_list()
 
 
 class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
@@ -601,9 +606,6 @@ class TaskWindow(EntityEditWindow, Gtk.ApplicationWindow):
         builder.aim_entry.props.selected = (self.entity.aim.id - 1) if self.entity else 0
         builder.aim_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'aim_id')
         builder.aim_edit_button.connect('clicked', self.on_aim_edit_clicked)
-        if self.entity:
-            builder.humans_column_view.update_list()
-            builder.communities_column_view.update_list()
 
     def on_aim_edit_clicked(self, button):
         window = EntityListWindow(TaskAim, transient_for=self, title='Task Aim List', modal=True)
@@ -633,8 +635,6 @@ class MeetingWindow(EntityEditWindow, Gtk.ApplicationWindow):
         self.id_value = builder.id_value
         builder.title_entry.connect('changed', self.on_change_any_data, 'title')
         #builder.description_entry.connect('changed', self.on_change_any_data, 'description')
-        if self.entity:
-            builder.humans_column_view.update_list()
 
 
 class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
@@ -659,9 +659,6 @@ class ContactWindow(EntityEditWindow, Gtk.ApplicationWindow):
 
         builder.status_entry.props.selected = (self.entity.status - 1) if self.entity else 0
         builder.status_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'status')
-        if self.entity:
-            builder.humans_column_view.update_list()
-            builder.communities_column_view.update_list()
     
     def on_type_edit_clicked(self, button):
         window = EntityListWindow(ContactType, transient_for=self, title='Contact Type List', modal=True)
@@ -908,10 +905,6 @@ class AppWindow(Gtk.ApplicationWindow):
         action_show_map.connect('activate', self.on_show_map)
         self.add_action(action_show_map)
 
-        builder.box.props.orientation = Gtk.Orientation.HORIZONTAL
-        builder.left_box.props.orientation = Gtk.Orientation.VERTICAL
-        builder.main_box.props.orientation = Gtk.Orientation.VERTICAL
-
         builder.button_show_human.connect('clicked', self.on_show_entities, Human, db.Human)
         builder.button_show_community.connect('clicked', self.on_show_entities, Community, db.Community)
         builder.button_show_task.connect('clicked', self.on_show_entities, Task, db.Task)
@@ -972,6 +965,7 @@ class MyApplication(Gtk.Application):
     def do_activate(self):
         window = AppWindow(application=self, title='Human Environment')
         window.present()
+
 
 db_path_with_protocol = f'sqlite:///{DB_PATH}'
 engine = create_engine(db_path_with_protocol, echo=True)
