@@ -21,7 +21,8 @@ from gi.repository import GLib, Gio, Gtk, GObject, Gdk
 from circle_map import CircleMapWindow
 
 BASE_DIR = Path(__file__).resolve().parent
-MENU_MAIN_PATH = BASE_DIR / 'menu_main.xml'
+XML_DIR = BASE_DIR / 'xml'
+MENU_MAIN_PATH = XML_DIR / 'menu_main.xml'
 config = Config(BASE_DIR)
 
 FIELD_ID_SIZE = 30
@@ -38,7 +39,7 @@ class EntityEditWindow(Gtk.ApplicationWindow):
             query = select(self.entity_class).where(self.entity_class.id == entity_id)
             self.entity = session.scalars(query).first()
 
-        self.builder = WindowBuilder(BASE_DIR / f'{self.entity_name}.xml', {'entity': self.entity}, parent_window=self)
+        self.builder = WindowBuilder(XML_DIR / f'{self.entity_name}.xml', {'entity': self.entity}, parent_window=self)
         self.set_child(self.builder.root_widget)
 
     @GObject.Signal(arg_types=(int,))
@@ -892,7 +893,7 @@ class AppWindow(Gtk.ApplicationWindow):
         self.set_default_size(min(x, 600), y)
         self.props.show_menubar = True
         
-        builder = WindowBuilder(BASE_DIR / 'app.xml', {})
+        builder = WindowBuilder(XML_DIR / 'app.xml', {})
         self.set_child(builder.root_widget)
 
         builder.scrolled_widget.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
