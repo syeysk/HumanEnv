@@ -10,10 +10,10 @@ from db import (
     CIRCLES,
     SEXES,
     CONTACT_STATUSES,
-    Base,
 )
+from api import Config, get_engine_and_create_all, create_first_rows
 from jinja2 import Template
-from sqlalchemy import select, delete, create_engine, or_
+from sqlalchemy import select, delete, or_
 from sqlalchemy.orm import Session
 
 gi.require_version('Gtk', '4.0')
@@ -22,13 +22,7 @@ from circle_map import CircleMapWindow
 
 BASE_DIR = Path(__file__).resolve().parent
 MENU_MAIN_PATH = BASE_DIR / 'menu_main.xml'
-DBS_DIR = BASE_DIR / 'dbs'
-
-DB_UUID = '8eafafd12f1a4bf4b8d4cfe5ae3b39e8'
-DB_DIR = DBS_DIR / DB_UUID
-DB_PATH = DB_DIR / 'sqlite3.db'
-DB_NAME_PATH = DB_DIR / 'name.txt'
-DB_PHOTOS_DIR = DB_DIR / 'photos'
+config = Config(BASE_DIR)
 
 FIELD_ID_SIZE = 30
 session = None
@@ -969,11 +963,10 @@ class MyApplication(Gtk.Application):
         window.present()
 
 
-db_path_with_protocol = f'sqlite:///{DB_PATH}'
-engine = create_engine(db_path_with_protocol, echo=True)
-#engine = create_engine('sqlite://', echo=True)
-Base.metadata.create_all(engine)
+config.use_last_db()
+engine = get_engine_and_create_all(config.path)
 with Session(engine) as session:
+    create_first_rows(session)
     app = MyApplication()
     exit_status = app.run(sys.argv)
 

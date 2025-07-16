@@ -213,28 +213,3 @@ class LinkHumanHuman(Base):
     human: Mapped['Human'] = relationship(foreign_keys=[human_id])
     human_linked: Mapped['Human'] = relationship(foreign_keys=[human_linked_id])
     relation: Mapped['HumanRelationType'] = relationship()
-
-
-'''
-        contact_types = (
-            (1, 'Не указано'),
-            (2, 'Телефон'),
-            (3, 'ВКонтакте'),
-            (4, 'Telegram'),
-        )
-        for contact_type_id, contact_type_name in contact_types:
-            contact_type = ContactType(id=contact_type_id, name=contact_type_name)
-            self.session.add(contact_type)
-
-        sectors = (
-            (1, 'Не указано'),
-            (2, 'Университет'),
-            (3, 'Работа'),
-            (4, 'Клуб'),
-        )
-        for sector_id, sector_name in sectors:
-            sector = Sector(id=sector_id, name=sector_name)
-            self.session.add(sector)
-
-        self.session.commit()
-        '''
