@@ -901,7 +901,7 @@ class AppWindow(Gtk.ApplicationWindow):
         builder = WindowBuilder(BASE_DIR / 'app.xml', {})
         self.set_child(builder.root_widget)
 
-        builder.s.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        builder.scrolled_widget.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
 
         action_show_map = Gio.SimpleAction.new('show_map', None)
         action_show_map.connect('activate', self.on_show_map)
