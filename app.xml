@@ -7,6 +7,8 @@
 	    <Button id="button_show_contact">Contact</Button>
 	    <Button id="button_show_meeting">Meeting</Button>
     </Box>
-	<Box id="main_box">
-	</Box>
+	<ScrolledWindow id="s">
+    	<Box id="main_box">
+	    </Box>
+	</ScrolledWindow>
 </Box>

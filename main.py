@@ -17,7 +17,7 @@ from sqlalchemy import select, delete, create_engine, or_
 from sqlalchemy.orm import Session
 
 gi.require_version('Gtk', '4.0')
-from gi.repository import GLib, Gio, Gtk, GObject
+from gi.repository import GLib, Gio, Gtk, GObject, Gdk
 from circle_map import CircleMapWindow
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -446,10 +446,15 @@ class WindowBuilder:
                         parent_gtk.append(gtkelem.box)
                     else:
                         parent_gtk.append(gtkelem)
+                elif parent_type == 'ScrolledWindow':
+                    if tag == 'EntityColumnView':
+                        parent_gtk.set_child(gtkelem.box)
+                    else:
+                        parent_gtk.set_child(gtkelem)
         
             if tag == 'Grid':
                 self.parents.append((gtkelem, tag, {'x': 0, 'y': -1}))
-            elif tag == 'Box':
+            elif tag == 'Box' or tag == 'ScrolledWindow':
                 self.parents.append((gtkelem, tag, None))
             
             if not self.root_widget:
@@ -458,7 +463,7 @@ class WindowBuilder:
         for child in node:
             self._go(child)
 
-        if tag in {'Grid', 'Box'}:
+        if tag in {'Grid', 'Box', 'ScrolledWindow'}:
             if self.parents:
                 self.parents.pop(-1)
 
@@ -875,15 +880,28 @@ class Meeting(GObject.Object):
         return self._meeting_title
 
 
+# Source: https://stackoverflow.com/questions/65807310/how-to-get-total-screen-size-in-python-gtk-without-using-deprecated-gdk-screen
+def get_screen_size(display):
+    mon_geoms = [monitor.get_geometry() for monitor in display.get_monitors()]
+    x0 = min(r.x            for r in mon_geoms)
+    y0 = min(r.y            for r in mon_geoms)
+    x1 = max(r.x + r.width  for r in mon_geoms)
+    y1 = max(r.y + r.height for r in mon_geoms)
+    return x1 - x0, y1 - y0
+
+
 class AppWindow(Gtk.ApplicationWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.set_default_size(600, 400)
+        x, y = get_screen_size(Gdk.Display.get_default())
+        self.set_default_size(min(x, 600), y)
         self.props.show_menubar = True
         
         builder = WindowBuilder(BASE_DIR / 'app.xml', {})
         self.set_child(builder.root_widget)
+
+        builder.s.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
 
         action_show_map = Gio.SimpleAction.new('show_map', None)
         action_show_map.connect('activate', self.on_show_map)
