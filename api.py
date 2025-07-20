@@ -18,7 +18,7 @@ class Config:
             self._dbs_dir.mkdir()
 
         self._last_open_path = self._dbs_dir / 'last_open.txt'
-        self._uuid = None
+        self.uuid = None
         self._db_dir = None
         self.path = None
         self.name = None
@@ -27,32 +27,50 @@ class Config:
         if not self._last_open_path.exists():
             self.make_new_db()
 
-    def populate_paths(self):
-        self._db_dir = self._dbs_dir / self._uuid
+    def _populate_paths(self):
+        self._db_dir = self._dbs_dir / self.uuid
         self.path = self._db_dir / 'sqlite3.db'
         self._db_name_path = self._db_dir / 'name.txt'
 
+    def _set_uuid(self, uuid):
+        self.uuid = uuid
+        with self._last_open_path.open('w', encoding='utf-8') as last_open_file:
+            last_open_file.write(self.uuid)
+
+    def _set_last_uuid(self):
+        with self._last_open_path.open(encoding='utf-8') as last_open_file:
+            self.uuid = last_open_file.read()
+
     def make_new_db(self, name='Default'):
         """ Генерирует идентификатор новой базы и помечает её как последнюю открытую """
-        self._uuid = uuid4().hex
         self.name = name
-        with self._last_open_path.open('w') as last_open_file:
-            last_open_file.write(self._uuid)
-
-        self.populate_paths()
+        self._set_uuid(uuid4().hex)
+        self._populate_paths()
         self._db_dir.mkdir()
-        with self._db_name_path.open('w') as db_name_file:
+        with self._db_name_path.open('w', encoding='utf-8') as db_name_file:
             db_name_file.write(name)
 
-    def use_last_db(self):
-        """Открывает последнюю открытую базу"""
-        if not self._uuid:
-            with self._last_open_path.open() as last_open_file:
-                self._uuid = last_open_file.read()
+    def use_db(self, uuid=None):
+        """Если uuid=None, то открывает базу, которая открывалась в прошлый раз"""
+        if uuid:
+            self._set_uuid(uuid)
+        else:
+            self._set_last_uuid()
 
-            self.populate_paths()
-            with self._db_name_path.open() as db_name_file:
-                self.name = db_name_file.read()
+        self._populate_paths()
+        with self._db_name_path.open(encoding='utf-8') as db_name_file:
+            self.name = db_name_file.read()
+
+    def list_dbs(self):
+        for db_dir in self._dbs_dir.iterdir():
+            if db_dir.is_file():
+                continue
+
+            uuid = db_dir.name
+            with (db_dir / 'name.txt').open(encoding='utf-8') as db_name_file:
+                name = db_name_file.read()
+
+            yield name, uuid
 
 
 def get_engine_and_create_all(db_apth: Path):

@@ -950,21 +950,36 @@ class MyApplication(Gtk.Application):
     def __init__(self):
         super().__init__(application_id='ru.syeysk.HumEnv')
         GLib.set_application_name('Human Environment Builder')
+        
+        action_open_db = Gio.SimpleAction.new_stateful('open_db', GLib.VariantType.new("s"), GLib.Variant('s', config.uuid))
+        action_open_db.connect('activate', self.open_db)
+        self.add_action(action_open_db)
+    
+    def open_db(self, action, value: GLib.Variant):
+        print(value.unpack())
+        config.use_db(value.unpack())
+        action.change_state(value)
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
         
-        with open(MENU_MAIN_PATH) as menu_main_file:
+        with open(MENU_MAIN_PATH, encoding='utf-8') as menu_main_file:
             builder = Gtk.Builder.new_from_string(menu_main_file.read(), -1)
 
         self.set_menubar(builder.get_object('menubar'))
+        list_db = builder.get_object('list_db')
+        for name, uuid in config.list_dbs():
+            item = Gio.MenuItem.new(name, None)
+            # Description for the first arg of GLib.Variant: https://docs.gtk.org/glib/struct.VariantType.html
+            item.set_action_and_target_value('app.open_db', GLib.Variant.new_string(uuid))
+            list_db.append_item(item)
 
     def do_activate(self):
         window = AppWindow(application=self, title='Human Environment')
         window.present()
 
 
-config.use_last_db()
+config.use_db()
 engine = get_engine_and_create_all(config.path)
 with Session(engine) as session:
     create_first_rows(session)
