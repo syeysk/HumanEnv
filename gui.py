@@ -948,7 +948,7 @@ class AppWindow(Gtk.ApplicationWindow):
 
 class MyApplication(Gtk.Application):
     def __init__(self):
-        super().__init__(application_id='ru.syeysk.HumEnv')
+        super().__init__(application_id='org.syeysk.HumEnv')
         GLib.set_application_name('Human Environment Builder')
         
         action_open_db = Gio.SimpleAction.new_stateful('open_db', GLib.VariantType.new("s"), GLib.Variant('s', config.uuid))
