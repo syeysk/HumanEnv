@@ -18,6 +18,10 @@
         <UniDropDown id="status_entry" colspan="2"></UniDropDown>
 	</Row>
 	<Row>
+	    <Box id="adapter_area" spacing="6" orientation="HORIZONTAL" colspan="3">
+		</Box>
+	</Row>
+	<Row>
 	    <EntityColumnView item_type="Human" id="humans_column_view" colspan="3" linking_table="LinkContactHuman" item_main="contact" item_slave="human"></EntityColumnView>    
 	</Row>
 	<Row>

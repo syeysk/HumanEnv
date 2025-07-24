@@ -643,7 +643,13 @@ class ContactWindow(EntityEditWindow):
 
         self.builder.status_entry.props.selected = (self.entity.status - 1) if self.entity else 0
         self.builder.status_entry.connect('notify::selected-item', self.on_change_any_data_dropdown, 'status')
-    
+        
+        from adapter import TGAdapter
+        TGAdapter(self.builder.adapter_area, self.get_contact, session)
+
+    def get_contact(self):
+        return self.entity
+
     def on_type_edit_clicked(self, button):
         window = EntityListWindow(ContactType, transient_for=self, title='Contact Type List', modal=True)
         window.present()

@@ -1,6 +1,6 @@
 import datetime
 from typing import List, Optional
-from sqlalchemy import ForeignKey, String, select, insert, update, DateTime
+from sqlalchemy import ForeignKey, String, select, insert, update, DateTime, JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -102,6 +102,7 @@ class Contact(Base):
     type_id: Mapped[int] = mapped_column(ForeignKey('contact_type.id'), nullable=False, default=1)
     type: Mapped['ContactType'] = relationship()
     status: Mapped[int] = mapped_column(nullable=False, default=CONTACT_STATUS_ACTIVE)
+    data: Mapped[JSON] = mapped_column(type_=JSON, nullable=False, default=dict)
 
 
 class Community(Base):

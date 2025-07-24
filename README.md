@@ -4,6 +4,7 @@
 - https://www.msys2.org/
 - Установить: `pacman -S mingw-w64-ucrt-x86_64-python-sqlalchemy` (https://packages.msys2.org/packages/mingw-w64-ucrt-x86_64-python-sqlalchemy)
 - Установить: `pacman -S mingw-w64-ucrt-x86_64-python-jinja` (https://packages.msys2.org/packages/mingw-w64-ucrt-x86_64-python-jinja)
+- Установить: `pacman -S mingw-w64-ucrt-x86_64-python-requests` (https://packages.msys2.org/packages/mingw-w64-ucrt-x86_64-python-requests)
 Шаблон для приложений: https://github.com/zevlee/hello-world-gtk
 
 Есл ипри установке возникнет ошибка с ключами: https://www.msys2.org/docs/updating/ (Potential Issues)
@@ -20,8 +21,9 @@
 
 Пошаговый план
 1. Добавить поле Адаптер к таблице ТипКонтакта
-1. Добавить поле `data` к таблице контактов
-1. Добавить адаптер с двумя кнопками: получить ID (есл  ранее не получен), Обновить имя (старое имя сохраняется в поле Data)
+1. Добавить адаптер для получения ID ВКонтакте
+1. Добавить адаптер для унификации телефона
+1. Сделать получение токена из файла
 1. СделатьAPI:
    - закрытие базы
    - получение прилинкованных сущномтей
