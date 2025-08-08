@@ -119,6 +119,7 @@ class Task(Base):
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     aim_id: Mapped[int] = mapped_column(ForeignKey('task_aim.id'), nullable=False, default=1)
     aim: Mapped['TaskAim'] = relationship()
+    has_done: Mapped[bool] = mapped_column(nullable=False, default=False)
 
 
 class Meeting(Base):

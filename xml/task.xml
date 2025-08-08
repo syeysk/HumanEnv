@@ -13,6 +13,9 @@
         <UniDropDown id="aim_entry"></UniDropDown>
         <Button id="aim_edit_button">Edit</Button>
 	</Row>
+    <Row>
+        <CheckButton colspan="3" id="has_done">Выполнено</CheckButton>
+	</Row>
 	<Row>
 	    <EntityColumnView item_type="Human" id="humans_column_view" colspan="3" linking_table="LinkTaskHuman" item_main="task" item_slave="human"></EntityColumnView>
 	</Row>

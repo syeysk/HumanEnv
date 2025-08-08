@@ -50,19 +50,21 @@ class EntityEditWindow(Gtk.ApplicationWindow):
     def entity_updated(self, entity_id: int, name: str, value: str):
         pass
 
-    def on_change_any_data(self, field_entry, field_name):
+    def on_change_any_data(self, field_entry, field_name: str):
         if isinstance(field_entry, Gtk.SpinButton):
             value = field_entry.get_value()
+        elif isinstance(field_entry, Gtk.CheckButton):
+            value = field_entry.props.active
         else:
             value = field_entry.get_text()
             
         self.change_any_data(field_name, value)
 
-    def on_change_any_data_dropdown(self, dropdown, _pspec, field_name):
+    def on_change_any_data_dropdown(self, dropdown, _pspec, field_name: str):
         item = dropdown.get_selected_item()
         self.change_any_data(field_name, item.item_id)
 
-    def change_any_data(self, name, value):
+    def change_any_data(self, name: str, value):
         fields = {name: value}
         if self.entity:
             setattr(self.entity, name, value)
@@ -396,7 +398,7 @@ class WindowBuilder:
 
             kwargs = {}
 
-            if tag in ('Label', 'Button'):
+            if tag in ('Label', 'Button', 'CheckButton'):
                 kwargs['label'] = node.text
             elif tag == 'Entry':
                 kwargs['text'] = node.text
@@ -592,6 +594,8 @@ class TaskWindow(EntityEditWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.builder.title_entry.connect('changed', self.on_change_any_data, 'title')
+        self.builder.has_done.connect('toggled', self.on_change_any_data, 'has_done')
+        self.builder.has_done.props.active = self.entity.has_done
 
         for task_aim in session.scalars(select(db.TaskAim)):
             self.builder.aim_entry.append(item_id=task_aim.id, item_name=task_aim.name)
@@ -805,20 +809,22 @@ class Community(GObject.Object):
 
 class Task(GObject.Object):
     __gtype_name__  = 'Task'
-    columns =  (('ID', 'entity_id', FIELD_ID_SIZE), ('Название', 'task_title', 400))
+    columns =  (('ID', 'entity_id', FIELD_ID_SIZE), ('Сделано', 'has_done', 60), ('Название', 'task_title', 500))
     window = TaskWindow
     
     @classmethod
     def from_db_object(cls, db_object):
         return cls(
             entity_id=db_object.id,
-            task_title=db_object.title
+            task_title=db_object.title,
+            has_done=db_object.has_done,
         )
 
-    def __init__(self, entity_id, task_title):
+    def __init__(self, entity_id, task_title, has_done):
         super().__init__()
         self._entity_id = entity_id
         self._task_title = task_title
+        self._has_done = has_done
 
     @GObject.Property(type=int)
     def entity_id(self):
@@ -827,6 +833,10 @@ class Task(GObject.Object):
     @GObject.Property(type=str)
     def task_title(self):
         return self._task_title
+
+    @GObject.Property(type=bool, default=False)
+    def has_done(self):
+        return self._has_done
 
 
 class TaskAim(GObject.Object):
