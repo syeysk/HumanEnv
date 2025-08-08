@@ -15,6 +15,9 @@
         <TextView id="description_entry" colspan="3">{{ entity.description }}</TextView>
     </Row>
 	<Row>
-	    <EntityColumnView item_type="Human" id="humans_column_view" colspan="3" linking_table="LinkHumanMeeting" item_main="meeting" item_slave="human"></EntityColumnView>    
+	    <EntityColumnView item_type="Human" id="humans_column_view" colspan="3" linking_table="LinkHumanMeeting" item_main="meeting" item_slave="human"></EntityColumnView>
+	</Row>
+	<Row>
+	    <EntityColumnView item_type="Task" id="tasks_column_view" colspan="3" linking_table="LinkTaskMeeting" item_main="meeting" item_slave="task"></EntityColumnView>
 	</Row>
 </Grid>

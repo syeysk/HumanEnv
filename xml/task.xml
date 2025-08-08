@@ -20,6 +20,9 @@
 	    <EntityColumnView item_type="Human" id="humans_column_view" colspan="3" linking_table="LinkTaskHuman" item_main="task" item_slave="human"></EntityColumnView>
 	</Row>
     <Row>
-      <EntityColumnView item_type="Community" id="communities_column_view" colspan="3" linking_table="LinkTaskCommunity" item_main="task" item_slave="community"></EntityColumnView>    
+      <EntityColumnView item_type="Community" id="communities_column_view" colspan="3" linking_table="LinkTaskCommunity" item_main="task" item_slave="community"></EntityColumnView>
+	</Row>
+    <Row>
+      <EntityColumnView item_type="Meeting" id="meetings_column_view" colspan="3" linking_table="LinkTaskMeeting" item_main="task" item_slave="meeting"></EntityColumnView>
 	</Row>
 </Grid>

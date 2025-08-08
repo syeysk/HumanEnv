@@ -178,6 +178,16 @@ class LinkTaskCommunity(Base):
     community: Mapped['Community'] = relationship()
 
 
+class LinkTaskMeeting(Base):
+    __tablename__ = 'link_task_meeting'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_id: Mapped[int] = mapped_column(ForeignKey('task.id'), nullable=False)
+    meeting_id: Mapped[int] = mapped_column(ForeignKey('meeting.id'), nullable=False)
+    task: Mapped['Task'] = relationship()
+    meeting: Mapped['Meeting'] = relationship()
+
+
 class LinkHumanCommunity(Base):
     __tablename__ = 'link_human_community'
 
