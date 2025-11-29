@@ -5,3 +5,4 @@ dbs
 config.json
 .pytest_cache
 .debug.log
+__init__.py
