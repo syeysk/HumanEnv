@@ -6,6 +6,7 @@
 	    <Button id="button_show_task">Task</Button>
 	    <Button id="button_show_contact">Contact</Button>
 	    <Button id="button_show_meeting">Meeting</Button>
+	    <Button id="button_export">Export</Button>
     </Box>
 	<ScrolledWindow id="scrolled_widget">
     	<Box id="main_box">

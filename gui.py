@@ -924,6 +924,8 @@ class AppWindow(Gtk.ApplicationWindow):
         builder.button_show_contact.connect('clicked', self.on_show_entities, Contact, db.Contact)
         builder.button_show_meeting.connect('clicked', self.on_show_entities, Meeting, db.Meeting)
 
+        builder.button_export.connect('clicked', self.on_export)
+
         self.main_box = builder.main_box
         self.entities_column_view = None
         self.on_show_entities(None, Human, db.Human)
@@ -944,9 +946,6 @@ class AppWindow(Gtk.ApplicationWindow):
         window = CircleMapWindow(session, transient_for=self, title='Circle Map', modal=True)
         window.present()
 
-    def on_show_aims(self, action, value):
-        pass
-
     def on_show_adding_entity(self, action, value=None):
         self.entities_column_view.open_item_window()
 
@@ -960,6 +959,42 @@ class AppWindow(Gtk.ApplicationWindow):
     def update_entity_list(self, entity_db_class):
         for entity in session.scalars(select(entity_db_class)):
             self.entities_column_view.append(entity)
+
+    def on_export(self, action):
+        print('export')
+        tables = {
+            'Sector': 'name',
+            'Human': 'family_name first_name father_name birth_year birth_month birth_day circle sex closing book_contact_type book_did sector_id',
+            'ContactType': 'name',
+            'Contact': 'value type_id status data',
+            'Community': 'name',
+            'Task': 'title aim_id has_done',
+            'Meeting': 'title description date',
+            'TaskAim': 'name',
+            'LinkContactHuman': 'contact_id human_id',
+            'LinkContactCommunity': 'contact_id community_id',
+            'LinkTaskHuman': 'task_id human_id',
+            'LinkTaskCommunity': 'task_id community_id',
+            'LinkTaskMeeting': 'task_id meeting_id',
+            'LinkHumanCommunity': 'human_id community_id',
+            'LinkHumanMeeting': 'human_id meeting_id',
+            'HumanRelationType': 'name',
+            'LinkHumanHuman': 'human_id human_linked_id relation_id',
+        }
+        data = []
+        for table, fields in tables.items():
+            fields = ['id', *fields.split()]
+            query = select(getattr(db, table))
+            for item in session.scalars(query):
+                data.append({'table': table, 'values': {field: getattr(item, field) for field in fields}})
+                if table == 'Meeting':
+                    data[-1]['values']['date'] = data[-1]['values']['date'].strftime('%Y-%m-%d %H:%M:%S')
+
+        import json
+        with open('dump.json', 'w', encoding='utf-8') as file_to_write:
+            json.dump(data, file_to_write)
+
+        print('export was finished')
 
 
 class MyApplication(Gtk.Application):
