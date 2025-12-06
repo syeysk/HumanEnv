@@ -2,33 +2,11 @@
 <interface>
 <menu id="menubar">
     <submenu>
-        <attribute name="label" translatable="yes">Базы</attribute>
-         <section id="list_db">
-            <attribute name="label" translatable="yes">Все базы</attribute>
-         </section>
-         <section id="current_db">
-           <item>
-                <attribute name="action">win.rename_db</attribute>
-                <attribute name="label" translatable="yes">Переименовать</attribute>
-            </item>
-             <item>
-                <attribute name="action">win.new_db</attribute>
-                <attribute name="label" translatable="yes">Новая база</attribute>
-            </item>
-       </section>
-    </submenu>
-
-    <submenu>
         <attribute name="label" translatable="yes">Show</attribute>
         <section>
             <item>
                 <attribute name="action">win.show_map</attribute>
                 <attribute name="label" translatable="yes">Map</attribute>
-            </item>
-            <item>
-                <attribute name="action">app.quit</attribute>
-                <attribute name="label" translatable="yes">Aims</attribute>
-                <attribute name="accel">&lt;Primary&gt;q</attribute>
             </item>
         </section>
     </submenu>
