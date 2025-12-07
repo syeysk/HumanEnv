@@ -1,77 +1,79 @@
 <?xml version="1.1" encoding="UTF-8" ?>
-<Box spacing="6" margin_top="6" margin_start="6" margin_end="6" margin_bottom="6">
-    <Box id="top_box" spacing="6" orientation="HORIZONTAL">
-        <Grid id="top_left_box" column_spacing="6" row_spacing="6">
-		    <Row>
-			    <Picture filename="temp.png" colspan="2"></Picture>
-			</Row>
-			<Row>
-				<Label xalign="0">Идентификатор</Label>
-				<Label id="id_value" xalign="0">{{ entity.id }}</Label>
-			</Row>
-			<Row>
-				<Label xalign="0">Пол</Label>
-				<UniDropDown id="sex_entry"></UniDropDown>
-			</Row>
-			<Row>
-				<Label xalign="0">Год рождения</Label>
-				<SpinButton id="birth_year_entry"></SpinButton>
-			</Row>
-			<Row>
-				<Label xalign="0">Месяц рождения</Label>
-				<SpinButton id="birth_month_entry"></SpinButton>
-			</Row>
-			<Row>
-				<Label xalign="0">День рождения</Label>
-				<SpinButton id="birth_day_entry"></SpinButton>
-			</Row>
-			<Row>
-				<Label xalign="0">Возраст</Label>
-				<Label id="age_value" xalign="0">0</Label>
-			</Row>
-        </Grid>
-        <Grid id="top_right_box" column_spacing="6" row_spacing="6">
-			<Row>
-				<Label xalign="0">Фамилия</Label>
-				<Entry id="family_name_entry" colspan="2">{{ entity.family_name }}</Entry>
-			</Row>
-			<Row>
-				<Label xalign="0">Имя</Label>
-				<Entry id="first_name_entry" colspan="2">{{ entity.first_name }}</Entry>
-			</Row>
-			<Row>
-				<Label xalign="0">Отчество</Label>
-				<Entry id="father_name_entry" colspan="2">{{ entity.father_name }}</Entry>
-			</Row>
-			<Row>
-				<Label xalign="0">Близость</Label>
-				<SpinButton id="closing_entry" colspan="2"></SpinButton>
-			</Row>
-			<Row>
-				<Label xalign="0">Круг</Label>
-				<UniDropDown id="circle_entry" colspan="2"></UniDropDown>
-			</Row>
-			<Row>
-				<Label xalign="0">Сектор</Label>
-				<UniDropDown id="sector_entry"></UniDropDown>
-				<Button id="sector_edit_button">Edit</Button>
-			</Row>
+<ScrolledWindow vexpand="" policies="NEVER AUTOMATIC" propagate_natural_height="">
+    <Box spacing="6" margin_top="6" margin_start="6" margin_end="6" margin_bottom="6">
+		<Box id="top_box" spacing="6" orientation="HORIZONTAL">
+			<Grid id="top_left_box" column_spacing="6" row_spacing="6">
+				<Row>
+					<Picture filename="temp.png" colspan="2"></Picture>
+				</Row>
+				<Row>
+					<Label xalign="0">Идентификатор</Label>
+					<Label id="id_value" xalign="0">{{ entity.id }}</Label>
+				</Row>
+				<Row>
+					<Label xalign="0">Пол</Label>
+					<UniDropDown id="sex_entry"></UniDropDown>
+				</Row>
+				<Row>
+					<Label xalign="0">Год рождения</Label>
+					<SpinButton id="birth_year_entry"></SpinButton>
+				</Row>
+				<Row>
+					<Label xalign="0">Месяц рождения</Label>
+					<SpinButton id="birth_month_entry"></SpinButton>
+				</Row>
+				<Row>
+					<Label xalign="0">День рождения</Label>
+					<SpinButton id="birth_day_entry"></SpinButton>
+				</Row>
+				<Row>
+					<Label xalign="0">Возраст</Label>
+					<Label id="age_value" xalign="0">0</Label>
+				</Row>
+			</Grid>
+			<Grid id="top_right_box" column_spacing="6" row_spacing="6">
+				<Row>
+					<Label xalign="0">Фамилия</Label>
+					<Entry id="family_name_entry" colspan="2">{{ entity.family_name }}</Entry>
+				</Row>
+				<Row>
+					<Label xalign="0">Имя</Label>
+					<Entry id="first_name_entry" colspan="2">{{ entity.first_name }}</Entry>
+				</Row>
+				<Row>
+					<Label xalign="0">Отчество</Label>
+					<Entry id="father_name_entry" colspan="2">{{ entity.father_name }}</Entry>
+				</Row>
+				<Row>
+					<Label xalign="0">Близость</Label>
+					<SpinButton id="closing_entry" colspan="2"></SpinButton>
+				</Row>
+				<Row>
+					<Label xalign="0">Круг</Label>
+					<UniDropDown id="circle_entry" colspan="2"></UniDropDown>
+				</Row>
+				<Row>
+					<Label xalign="0">Сектор</Label>
+					<UniDropDown id="sector_entry"></UniDropDown>
+					<Button id="sector_edit_button">Edit</Button>
+				</Row>
 
-			<Row>
-				<Label xalign="0">Тип контакта</Label>
-				<UniDropDown id="book_contact_type_entry" colspan="2"></UniDropDown>
-			</Row>
-			<Row>
-				<Label xalign="0">Анализ ОИС</Label>
-				<UniDropDown id="book_did_entry" colspan="2"></UniDropDown>
-			</Row>
-        </Grid>
+				<Row>
+					<Label xalign="0">Тип контакта</Label>
+					<UniDropDown id="book_contact_type_entry" colspan="2"></UniDropDown>
+				</Row>
+				<Row>
+					<Label xalign="0">Анализ ОИС</Label>
+					<UniDropDown id="book_did_entry" colspan="2"></UniDropDown>
+				</Row>
+			</Grid>
+		</Box>
+		<Box id="bottom_box" spacing="6">
+		  <EntityColumnView item_type="Community" id="communities_column_view" colspan="3" linking_table="LinkHumanCommunity" item_main="human" item_slave="community"></EntityColumnView>
+			<EntityColumnView item_type="Contact" id="contacts_column_view" colspan="3" linking_table="LinkContactHuman" item_main="human" item_slave="contact"></EntityColumnView>
+		  <EntityColumnView item_type="Meeting" id="meetings_column_view" colspan="3" linking_table="LinkHumanMeeting" item_main="human" item_slave="meeting"></EntityColumnView>
+		  <EntityColumnView item_type="Task" id="tasks_column_view" colspan="3" linking_table="LinkTaskHuman" item_main="human" item_slave="task"></EntityColumnView>
+		 <EntityColumnView item_type="Human" id="humans_column_view" colspan="3" linking_table="LinkHumanHuman" item_main="human" item_slave="human_linked" same=""></EntityColumnView>
+		</Box>
     </Box>
-	<Box id="bottom_box" spacing="6">
-      <EntityColumnView item_type="Community" id="communities_column_view" colspan="3" linking_table="LinkHumanCommunity" item_main="human" item_slave="community"></EntityColumnView>
-	    <EntityColumnView item_type="Contact" id="contacts_column_view" colspan="3" linking_table="LinkContactHuman" item_main="human" item_slave="contact"></EntityColumnView>
-      <EntityColumnView item_type="Meeting" id="meetings_column_view" colspan="3" linking_table="LinkHumanMeeting" item_main="human" item_slave="meeting"></EntityColumnView>
-      <EntityColumnView item_type="Task" id="tasks_column_view" colspan="3" linking_table="LinkTaskHuman" item_main="human" item_slave="task"></EntityColumnView>
-     <EntityColumnView item_type="Human" id="humans_column_view" colspan="3" linking_table="LinkHumanHuman" item_main="human" item_slave="human_linked" same=""></EntityColumnView>
-	</Box>
-</Box>
+</ScrolledWindow>

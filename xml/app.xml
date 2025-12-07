@@ -7,7 +7,7 @@
 	    <Button id="button_show_contact">Contact</Button>
 	    <Button id="button_show_meeting">Meeting</Button>
     </Box>
-	<ScrolledWindow id="scrolled_widget">
+	<ScrolledWindow policies="NEVER AUTOMATIC" propagate_natural_height="" propagate_natural_width="" vexpand="" hexpand="">
     	<Box id="main_box">
 	    </Box>
 	</ScrolledWindow>
