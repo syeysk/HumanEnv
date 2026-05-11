@@ -1,2 +1,2 @@
-PyGObject==3.52.3
 Django==5.2.1
+PyQt6==6.11.0
