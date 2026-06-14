@@ -1,13 +1,15 @@
-# HumEnv - приложение для описания социальной сети
+<img src="images/title_big_wide.jpg" width="100%"/>
 
-Инструкция по установке: https://pygobject.gnome.org/getting_started.html
-- https://www.msys2.org/
-- Установить: `pacman -S mingw-w64-ucrt-x86_64-python-sqlalchemy` (https://packages.msys2.org/packages/mingw-w64-ucrt-x86_64-python-sqlalchemy)
-- Установить: `pacman -S mingw-w64-ucrt-x86_64-python-jinja` (https://packages.msys2.org/packages/mingw-w64-ucrt-x86_64-python-jinja)
-- Установить: `pacman -S mingw-w64-ucrt-x86_64-python-requests` (https://packages.msys2.org/packages/mingw-w64-ucrt-x86_64-python-requests)
-Шаблон для приложений: https://github.com/zevlee/hello-world-gtk
+# HumanEnv - приложение для описания социальной сети
 
-Если при установке возникнет ошибка с ключами: https://www.msys2.org/docs/updating/ (Potential Issues)
+Установите зависимости:
+- `pip install -r requirements.txt`
+
+Примените миграции:
+- `python src/manage.py migrate`
+
+Запустите MediaGarden:
+- `python src/gui-qt.py`
 
 ## Открытие программы по ссылке в браузере
 
