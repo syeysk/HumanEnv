@@ -1,8 +1,8 @@
 from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout
 
-from common.gui_entities_list import EntitiesList
-from common.gui_entity import GUIEntity
-from common.gui_entity_windows import EntityWindow
+from gardensunion.base.gui_entities_list import EntitiesList
+from gardensunion.base.gui_entity import GUIEntity
+from gardensunion.base.gui_entity_windows import EntityWindow
 from db.gui_actions import ActionsHumanWidget
 from db.models import (
     Community,

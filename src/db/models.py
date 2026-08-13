@@ -1,5 +1,5 @@
 from django.db import models
-from common.models import Tag
+from gardensunion.base.models import Tag
 
 CIRCLE_DEVELOP = 1
 CIRCLE_EFFECTIVITY = 2

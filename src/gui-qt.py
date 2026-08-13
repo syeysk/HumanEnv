@@ -10,7 +10,7 @@ django.setup()
 
 from django.conf import settings
 
-from common.gui_main_window import MainWindow
+from gardensunion.base.gui_main_window import MainWindow
 from db.gui_windows import GUIHuman, GUICommunity, GUITask, GUIContact, GUIMeeting
 
 
