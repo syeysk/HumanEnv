@@ -100,10 +100,12 @@ class ContactType(models.Model):
 
 
 class Contact(models.Model):
+    CODE = 4
     value = models.CharField('Значение', max_length=100, blank=True)
     type = models.ForeignKey(ContactType, on_delete=models.CASCADE)
     status = models.IntegerField('Статус', choices=CONTACT_STATUSES, default=CONTACT_STATUS_ACTIVE)
     data = models.JSONField(default=dict)
+    tags = models.ManyToManyField(Tag, related_name='contacts')
 
     def __str__(self):
         return f'{self.type}: {self.value}'
@@ -139,9 +141,12 @@ class TaskAim(models.Model):
 
 
 class Task(models.Model):
+    CODE = 5
+
     title = models.CharField('Название', max_length=100)
     aim = models.ForeignKey(TaskAim, on_delete=models.CASCADE)
     has_done = models.BooleanField('Выполнена?', default=False)
+    tags = models.ManyToManyField(Tag, related_name='tasks')
 
     def __str__(self):
         return f'{"[x]" if self.has_done else "[ ]"} {self.title}'
@@ -152,9 +157,11 @@ class Task(models.Model):
 
 
 class Meeting(models.Model):
+    CODE = 6
     title = models.CharField('Заголовок', max_length=100)
     description = models.CharField('Описание', max_length=10000, blank=True, default='')
     date = models.DateTimeField(auto_now_add=True)
+    tags = models.ManyToManyField(Tag, related_name='meetings')
 
     def __str__(self):
         return f'{self.date.strftime("%Y-%m-%d")} {self.title}'

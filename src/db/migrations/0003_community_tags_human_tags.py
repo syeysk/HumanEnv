@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('common', '0001_initial'),
+        ('base', '0001_initial'),
         ('db', '0002_alter_community_options_alter_contact_options_and_more'),
     ]
 
@@ -14,11 +14,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='community',
             name='tags',
-            field=models.ManyToManyField(related_name='communities', to='common.tag'),
+            field=models.ManyToManyField(related_name='communities', to='base.tag'),
         ),
         migrations.AddField(
             model_name='human',
             name='tags',
-            field=models.ManyToManyField(related_name='humans', to='common.tag'),
+            field=models.ManyToManyField(related_name='humans', to='base.tag'),
         ),
     ]
