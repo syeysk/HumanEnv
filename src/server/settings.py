@@ -10,8 +10,6 @@ env = environ.Env(
     DEBUG=(bool, True),
     ALLOWED_HOSTS=(list, ['*']),
     SITE_URL=(str, 'http://127.0.0.1'),
-    MODULES=(list, []),
-    ENTITY_TYPES=(list, []),
 )
 environ.Env.read_env(env_file=BASE_DIR / '.env')
 
@@ -25,13 +23,13 @@ SECRET_KEY = env('SECRET_KEY')
 SITE_URL = env('SITE_URL')
 ALLOWED_HOSTS = env('ALLOWED_HOSTS')
 
-ENTITY_TYPES = env('ENTITY_TYPES')
+ENTITY_TYPES = env('ENTITY_TYPES', default=[])
 ENTITY_MODELS_BY_CODE = {}
 
 
 # Application definition
 
-MODULES = env('MODULES')
+MODULES = env('MODULES', default=[])
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -162,6 +160,6 @@ LOGGING = {
     },
 }
 
-CORS_ALLOWED_ORIGINS = ['http://localhost:5173']  # env.list('CORS_ALLOWED_ORIGINS', default=[])
-CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'DELETE']  # env.list('CORS_ALLOW_METHODS', default=[])
-CSRF_TRUSTED_ORIGINS = ['http://localhost:5173']  # env.list('CSRF_TRUSTED_ORIGINS', default=[])
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
+CORS_ALLOW_METHODS = env.list('CORS_ALLOW_METHODS', default=[])
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
