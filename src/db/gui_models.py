@@ -55,27 +55,31 @@ class GUIMeeting:
 
 class GUISector:
     dj_model = Sector
-    # table_class = EntitiesList
-    # window_class = SectorWindow
+    fields_search = ['name']
+    window_fields = ['name']
     table_fields = ['name']
+    show_on_main = False
 
 
 class GUIHumanRelationType:
     dj_model = HumanRelationType
-    # table_class = EntitiesList
-    # window_class = HumanRelationTypeWindow
+    fields_search = ['name']
+    window_fields = ['name']
     table_fields = ['name']
+    show_on_main = False
 
 
 class GUITaskAim:
     dj_model = TaskAim
-    # table_class = EntitiesList
-    # window_class = TaskAimWindow
+    fields_search = ['name']
+    window_fields = ['name']
     table_fields = ['name']
+    show_on_main = False
 
 
 class GUIContactType:
     dj_model = ContactType
-    # table_class = EntitiesList
-    # window_class = ContactTypeWindow
+    fields_search = ['name']
+    window_fields = ['name']
     table_fields = ['name']
+    show_on_main = False

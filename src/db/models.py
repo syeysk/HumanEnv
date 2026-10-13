@@ -52,6 +52,7 @@ BOOK_DID = {
 
 
 class Sector(models.Model):
+    CODE = 13
     name = models.CharField('Наименование', max_length=64, unique=True)
 
     def __str__(self):
@@ -89,6 +90,7 @@ class Human(models.Model):
 
 
 class ContactType(models.Model):
+    CODE = 12
     name = models.CharField('Наименование', max_length=100, unique=True)
     
     def __str__(self):
@@ -130,6 +132,7 @@ class Community(models.Model):
 
 
 class TaskAim(models.Model):
+    CODE = 11
     name = models.CharField('Наименование', max_length=100)
 
     def __str__(self):
@@ -207,6 +210,7 @@ class LinkHumanMeeting(models.Model):
 
 
 class HumanRelationType(models.Model):
+    CODE = 14
     name = models.CharField('Наименование', max_length=100)
 
     def __str__(self):
