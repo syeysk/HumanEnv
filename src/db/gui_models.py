@@ -30,6 +30,7 @@ class GUICommunity:
     # table_class = EntitiesList
     # window_class = CommunityWindow
     table_fields = ['name']
+    window_fields = ['name']
 
 
 class GUITask:
@@ -37,6 +38,7 @@ class GUITask:
     # table_class = EntitiesList
     # window_class = TaskWindow
     table_fields = ['has_done', 'title']
+    window_fields = ['has_done', 'title', 'aim']
 
 
 class GUIContact:
@@ -44,6 +46,7 @@ class GUIContact:
     # table_class = EntitiesList
     # window_class = ContactWindow
     table_fields = ['type', 'value', 'status']
+    window_fields = ['type', 'value', 'status']
 
 
 class GUIMeeting:
@@ -51,6 +54,7 @@ class GUIMeeting:
     # table_class = EntitiesList
     # window_class = MeetingWindow
     table_fields = ['title']
+    window_fields = ['title', 'description', 'date']
  
 
 class GUISector:
