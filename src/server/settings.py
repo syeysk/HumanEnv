@@ -12,18 +12,16 @@ env = environ.Env(
     SITE_URL=(str, 'http://127.0.0.1'),
 )
 environ.Env.read_env(env_file=BASE_DIR / '.env')
+ENV = env
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-TG_TOKEN = env('TG_TOKEN')
 
 DEBUG = env('DEBUG')
 SECRET_KEY = env('SECRET_KEY')
 SITE_URL = env('SITE_URL')
 ALLOWED_HOSTS = env('ALLOWED_HOSTS')
 
-ENTITY_TYPES = env('ENTITY_TYPES', default=[])
 ENTITY_MODELS_BY_CODE = {}
 
 
