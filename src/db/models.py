@@ -174,41 +174,6 @@ class Meeting(models.Model):
         verbose_name_plural = 'Встречи'
 
 
-class LinkContactHuman(models.Model):
-    contact = models.ForeignKey(Contact, on_delete=models.CASCADE)
-    human = models.ForeignKey(Human, on_delete=models.CASCADE)
-
-
-class LinkContactCommunity(models.Model):
-    contact = models.ForeignKey(Contact, on_delete=models.CASCADE)
-    community = models.ForeignKey(Community, on_delete=models.CASCADE)
-
-
-class LinkTaskHuman(models.Model):
-    human = models.ForeignKey(Human, on_delete=models.CASCADE)
-    task = models.ForeignKey(Task, on_delete=models.CASCADE)
-
-
-class LinkTaskCommunity(models.Model):
-    task = models.ForeignKey(Task, on_delete=models.CASCADE)
-    community = models.ForeignKey(Community, on_delete=models.CASCADE)
-
-
-class LinkTaskMeeting(models.Model):
-    task = models.ForeignKey(Task, on_delete=models.CASCADE)
-    meeting = models.ForeignKey(Meeting, on_delete=models.CASCADE)
-
-
-class LinkHumanCommunity(models.Model):
-    community = models.ForeignKey(Community, on_delete=models.CASCADE)
-    human = models.ForeignKey(Human, on_delete=models.CASCADE)
-
-
-class LinkHumanMeeting(models.Model):
-    human = models.ForeignKey(Human, on_delete=models.CASCADE)
-    meeting = models.ForeignKey(Meeting, on_delete=models.CASCADE)
-
-
 class HumanRelationType(models.Model):
     CODE = 14
     name = models.CharField('Наименование', max_length=100)
