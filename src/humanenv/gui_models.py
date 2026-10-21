@@ -1,7 +1,4 @@
-from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout
-
-from db.gui_actions import ActionsHumanWidget
-from db.models import (
+from humanenv.models import (
     Community,
     Contact,
     Human,
